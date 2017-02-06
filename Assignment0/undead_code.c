@@ -6,7 +6,7 @@
 //                               signal handler self-hack
 
 // Student name:   Vineet Shenoy
-// Ilab machine used:
+// Ilab machine used: template.cs.rutgers.edu
 
 #include <signal.h>
 #include <stdio.h>
@@ -15,7 +15,7 @@
 void segment_fault_handler(int signum)
 {
 	printf("I am slain!\n");
-	*((char*) &signum + 60) += 2;
+	*((char*) &signum + 60) += 4;
 
 	//Use the signnum to construct a pointer to flag on stored stack
 	//Increment pointer down to the stored PC
