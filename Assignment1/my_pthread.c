@@ -27,10 +27,13 @@ void handler(int sig){
 
 int main(){
 	struct itimerval timer;
-	signal(SIGVTALRM,handler);
+	signal(SIGVTALRM,handler);	//Creates the signal handler
 
+	//it_interval value to which reset occurs 
 	timer.it_interval.tv_sec = 0;
 	timer.it_interval.tv_usec = 100000;
+	
+	//it_value is value that is counted down. Once zero, sends signal
 	timer.it_value.tv_sec = 0;
 	timer.it_value.tv_usec = 100000;
 	
