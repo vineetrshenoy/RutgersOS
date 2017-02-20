@@ -4,30 +4,36 @@
 #include <signal.h>
 #include <sys/time.h>
 
-#define STACK_SIZE 1000
+#define STACK_SIZE 100000
 
 
 ucontext_t ucp, ucp_two, ucp_main;
+volatile int x;
+struct itimerval timer;
 
 void printFunction(){
-	printf("Entered printFunction ONE\n");
+	
+	
+	printf("Waiting for signal handler\n");
+	sleep(1);
+	printf("We are here now \n");
+
+	
 	
 }
 
 
-void printFunctionTwo(){
-	printf("Entered printFunction TWO \n");
-}
-
-
 void handler(int sig){
-	printf("Entered the signal handler...now exiting\n");
-	exit(1);
+	printf("In signal handler\n");
+	setcontext(&ucp_main);
 }
+
+
 
 int main(){
+	
 	struct itimerval timer;
-	signal(SIGVTALRM,handler);	//Creates the signal handler
+	signal(SIGALRM,handler);	//Creates the signal handler
 
 	//it_interval value to which reset occurs 
 	timer.it_interval.tv_sec = 0;
@@ -37,12 +43,31 @@ int main(){
 	timer.it_value.tv_sec = 0;
 	timer.it_value.tv_usec = 100000;
 	
-	setitimer(ITIMER_VIRTUAL, &timer, NULL);
+	
+
+	if (getcontext(&ucp) == -1)
+		printf("Error retrieving context\n");
+	ucp.uc_stack.ss_sp = malloc(STACK_SIZE);	//Allocate new stack space
+	ucp.uc_stack.ss_size = STACK_SIZE;			//Specify size of stack
+	ucp.uc_link = NULL;
 
 
-	while(1){
 
-	}
+	void (*functionPointer)();
+	functionPointer = &printFunction;
+	makecontext(&ucp, functionPointer, 0);	//Creates the context
+	setitimer(ITIMER_REAL, &timer, NULL);	//sets the itimer
+	swapcontext(&ucp_main, &ucp);			//swaps to the other context
+	
+	x = 5;
+	
+
+	
+	printf("In main ... the value of x is %d \n", x);
+	
+
+	
+	
 
 
 	printf("Ending main\n");
