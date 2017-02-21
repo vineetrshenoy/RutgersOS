@@ -11,6 +11,56 @@ ucontext_t ucp, ucp_two, ucp_main;
 volatile int x;
 struct itimerval timer;
 
+
+
+
+int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
+
+}
+
+
+void my_pthread_yield(){
+
+}
+
+
+
+void my_pthread_exit(void * value_ptr){
+
+
+}
+
+
+int my_pthread_join(my_pthread_t thread, void ** value_ptr){
+
+
+
+}
+
+
+
+
+int my_thread_mutex_init(my_pthread_t * mutex, const pthread_mutexattr_t * mutexattr){
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void printFunction(){
 	
 	
