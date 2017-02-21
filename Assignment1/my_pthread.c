@@ -16,10 +16,38 @@ struct itimerval timer;
 
 int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
+	/*
+
+	First time around,this function returns two contexts.
+
+
+		1. Create a new context
+		2. Allocate stack space
+		3. Stack size
+		4. uc_link 
+
+
+
+		Have some global variable that checks if my_pthread_create has not been run before. If not,
+		1. Initialize priority queues
+		2. Create a context for the main
+		3. Add to the ready queue
+		4. Only keep one version of main use version on the queue
+	*/
+
+
+
+
 }
 
 
 void my_pthread_yield(){
+
+	/*
+		This contains schedule code
+
+
+	*/
 
 }
 
@@ -27,12 +55,30 @@ void my_pthread_yield(){
 
 void my_pthread_exit(void * value_ptr){
 
+	/*
+	ATOMIC OPERATION
+
+	1. Assign the return value of the function to value_ptr
+	2. Deallocate the stack
+	3. Remove context from the priority queue
+	4. my_pthread_yield
+
+ 
+
+	*/
+
 
 }
 
 
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
+	
 
+	/*
+	1. Calling thread will not run until called thread is done running
+	2. Call yield()
+
+	*/
 
 
 }
@@ -41,7 +87,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 
 int my_thread_mutex_init(my_pthread_t * mutex, const pthread_mutexattr_t * mutexattr){
-	
+
 }
 
 
