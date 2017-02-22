@@ -6,23 +6,25 @@
 
 #define STACK_SIZE 100000
 
-typedef struct thread_node {
+typedef struct my_pthread_t {
 
 	int thread_id;
-	char * context;
-	struct thread_node * next;
+	ucontext_t * context;
+	char * string;
+	struct my_pthread_t * next;
 
-}thread_node;
+}my_pthread_t;
 
 ucontext_t ucp, ucp_two, ucp_main;
 volatile int x;
 struct itimerval timer;
-thread_node * head;
+my_pthread_t * tail;
+int queueSize = 0;
 
 
 
 
-//int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
+int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
 	/*
 
@@ -46,7 +48,7 @@ thread_node * head;
 
 
 
-//}
+}
 
 
 //void my_pthread_yield(){
@@ -100,13 +102,60 @@ thread_node * head;
 
 
 
+/*
+	This function inputs a new thread at the beginning of the queue
+
+	INPUT: The thread to add
+	OUTPUT: 1 on succcess, zero on failure
+
+*/
+
+int enqueueFront(my_pthread_t * newThread){
+
+	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
+	if (queueSize == 0){
+		tail = newThread;
+		tail->next = tail;
+		queueSize++;
+		return 1;
+	}
 
 
+	//If one element or greater exists
+	newThread->next = tail->next;	//new thread points to front (become front)
+	tail->next = newThread;			//next of tail points to new thread
+	queueSize++;
+	return 1;
+}
 
 
+/*
+	This function inputs a new thread at the rear of the queue
+
+	INPUT: The thread to add
+	OUTPUT: 1 on succcess, zero on failure
+
+*/
+
+int enqueueRear(my_pthread_t * newThread){
+
+	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
+	//Same as enqueueFront
+	if (queueSize == 0){
+		tail = newThread;
+		tail->next = tail;
+		queueSize++;
+		return 1;
+	}
 
 
-
+	//If one element or greater exists
+	newThread->next = tail->next;	//the new thread points to the first element
+	tail->next = newThread;			//Old tail points to the new tail
+	tail = tail->next;			//Tail variable moves to new tail
+	queueSize++;
+	return 1;
+}
 
 
 
@@ -170,9 +219,9 @@ int main(){
 	
 
 	*/
-
-	thread_node * first = (thread_node *) malloc (sizeof(thread_node));
-	thread_node * second = (thread_node *) malloc (sizeof(thread_node));
+	/*
+	my_pthread_t * first = (my_pthread_t *) malloc (sizeof(my_pthread_t));
+	my_pthread_t * second = (my_pthread_t *) malloc (sizeof(my_pthread_t));
 	head = first;
 	first->context = "This is the first node\n";
 	first->next = second;
@@ -183,7 +232,7 @@ int main(){
 
 	printf("%s\n", first->context);
 	printf("%s\n", first->next->context);
-
+	*/
 	
 
 
