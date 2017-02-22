@@ -6,15 +6,23 @@
 
 #define STACK_SIZE 100000
 
+typedef struct thread_node {
+
+	int thread_id;
+	char * context;
+	struct thread_node * next;
+
+}thread_node;
 
 ucontext_t ucp, ucp_two, ucp_main;
 volatile int x;
 struct itimerval timer;
+thread_node * head;
 
 
 
 
-int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
+//int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
 	/*
 
@@ -38,10 +46,10 @@ int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*func
 
 
 
-}
+//}
 
 
-void my_pthread_yield(){
+//void my_pthread_yield(){
 
 	/*
 		This contains schedule code
@@ -49,11 +57,10 @@ void my_pthread_yield(){
 
 	*/
 
-}
+//}
 
 
-
-void my_pthread_exit(void * value_ptr){
+//void my_pthread_exit(void * value_ptr){
 
 	/*
 	ATOMIC OPERATION
@@ -68,27 +75,27 @@ void my_pthread_exit(void * value_ptr){
 	*/
 
 
-}
+//}
 
 
-int my_pthread_join(my_pthread_t thread, void ** value_ptr){
+//int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
 
 	/*
 	1. Calling thread will not run until called thread is done running
 	2. Call yield()
-
+	
 	*/
 
 
-}
+//}
 
 
 
 
-int my_thread_mutex_init(my_pthread_t * mutex, const pthread_mutexattr_t * mutexattr){
+//int my_thread_mutex_init(my_pthread_t * mutex, const pthread_mutexattr_t * mutexattr){
 
-}
+//}
 
 
 
@@ -127,7 +134,7 @@ void handler(int sig){
 
 
 int main(){
-	
+	/*
 	struct itimerval timer;
 	signal(SIGALRM,handler);	//Creates the signal handler
 
@@ -162,7 +169,21 @@ int main(){
 	printf("In main ... the value of x is %d \n", x);
 	
 
+	*/
+
+	thread_node * first = (thread_node *) malloc (sizeof(thread_node));
+	thread_node * second = (thread_node *) malloc (sizeof(thread_node));
+	head = first;
+	first->context = "This is the first node\n";
+	first->next = second;
+	second->context = "This is the second node\n";
+	second->next = NULL;
+
 	
+
+	printf("%s\n", first->context);
+	printf("%s\n", first->next->context);
+
 	
 
 
