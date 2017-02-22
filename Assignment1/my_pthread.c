@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #define STACK_SIZE 100000
+#define INSCHED false
 
 typedef struct thread_node {
 
@@ -19,7 +20,21 @@ volatile int x;
 struct itimerval timer;
 thread_node * head;
 
+typedef unsigned long int my_pthread_t;
 
+typedef struct
+{
+  int __detachstate;
+  int __schedpolicy;
+  struct sched_param __schedparam;
+  int __inheritsched;
+  int __scope;
+  size_t __guardsize;
+  int __stackaddr_set;
+  void *__stackaddr;
+  unsigned long int __stacksize;
+}
+my_pthread_attr_t;
 
 
 //int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*function)(void*), void* arg){
@@ -41,6 +56,19 @@ thread_node * head;
 		2. Create a context for the main
 		3. Add to the ready queue
 		4. Only keep one version of main use version on the queue
+		
+	ucontext_t a;
+
+	getcontext(&a);
+	a.uc_link = 0;
+	a.uc_stack.ss_sp = malloc(STACK_SIZE);
+	a.uc_stack.ss_size = STACK_SIZE;
+	a.uc_stack.ss_flags = 0;
+	makecontext(&a, (void*) &function, arg);
+
+	if (!INSCHED) {
+		ready_queue.add(getcontext(&a));
+	}
 	*/
 
 
@@ -54,6 +82,14 @@ thread_node * head;
 	/*
 		This contains schedule code
 
+	ucontext_t curr;
+	getcontext(&curr);
+	swapcontext(&curr, ready_queue.pop());
+	timer.it_interval.tv_usec = 50000;
+	timer.it_value.tv_usec = 50000;
+	timer.it_interval.tv_sec = 0;
+	timer.it_value.tv_sec = 0;
+	setitimer(ITIMER_REAL, &timer, NULL);
 
 	*/
 
