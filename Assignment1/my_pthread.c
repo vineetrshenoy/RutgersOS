@@ -171,6 +171,7 @@ my_pthread_t * dequeueFront(){
 	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
 	//Same as enqueueFront
 	if (queueSize == 0){
+		printf("No elements in queue. Returning NULL\n");
 		return NULL;
 	}
 	else if (queueSize == 0) {
@@ -182,6 +183,7 @@ my_pthread_t * dequeueFront(){
 	returnThread = tail->next;
 	tail->next = returnThread->next;
 	returnThread->next = NULL;
+	queueSize--;
 	return returnThread;
 	
 }
@@ -212,58 +214,42 @@ void handler(int sig){
 
 
 int main(){
-	/*
-	struct itimerval timer;
-	signal(SIGALRM,handler);	//Creates the signal handler
+	my_pthread_t * counter;
 
-	//it_interval value to which reset occurs 
-	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 100000;
+	// The first thread
+	my_pthread_t * threadOne = (my_pthread_t *) malloc(sizeof(my_pthread_t));
+	threadOne->string = "This is the first thread";
+	enqueueFront(threadOne);
+
+	//The second thread
+	my_pthread_t * threadTwo = (my_pthread_t *) malloc(sizeof(my_pthread_t));
+	threadTwo->string = "This is the second thread";
+	enqueueFront(threadTwo);
+
+	//The second thread
+	my_pthread_t * threadThree = (my_pthread_t *) malloc(sizeof(my_pthread_t));
+	threadThree->string = "This is the third thread";
+	enqueueFront(threadThree);
+
+	printf("%s and queueSize %d\n", tail->string, queueSize);
+	counter = tail->next;
+	while (counter != tail){
+		printf("%s and queueSize %d\n", counter->string, queueSize);
+		counter = counter->next;
+	}
+
+
+	my_pthread_t * value = dequeueFront();
+	printf("%s and queue size %d\n", value->string, queueSize);
+
+	my_pthread_t * valuetwo= dequeueFront();
+	printf("%s and queue size %d\n", valuetwo->string, queueSize);
+
+	my_pthread_t * valuethree = dequeueFront();
+	printf("%s and queue size %d\n", valuethree->string, queueSize);
+
+	my_pthread_t * nullValue = dequeueFront();
 	
-	//it_value is value that is counted down. Once zero, sends signal
-	timer.it_value.tv_sec = 0;
-	timer.it_value.tv_usec = 100000;
-	
-	
-
-	if (getcontext(&ucp) == -1)
-		printf("Error retrieving context\n");
-	ucp.uc_stack.ss_sp = malloc(STACK_SIZE);	//Allocate new stack space
-	ucp.uc_stack.ss_size = STACK_SIZE;			//Specify size of stack
-	ucp.uc_link = NULL;
-
-
-
-	void (*functionPointer)();
-	functionPointer = &printFunction;
-	makecontext(&ucp, functionPointer, 0);	//Creates the context
-	setitimer(ITIMER_REAL, &timer, NULL);	//sets the itimer
-	swapcontext(&ucp_main, &ucp);			//swaps to the other context
-	
-	x = 5;
-	
-
-	
-	printf("In main ... the value of x is %d \n", x);
-	
-
-	*/
-	/*
-	my_pthread_t * first = (my_pthread_t *) malloc (sizeof(my_pthread_t));
-	my_pthread_t * second = (my_pthread_t *) malloc (sizeof(my_pthread_t));
-	head = first;
-	first->context = "This is the first node\n";
-	first->next = second;
-	second->context = "This is the second node\n";
-	second->next = NULL;
-
-	
-
-	printf("%s\n", first->context);
-	printf("%s\n", first->next->context);
-	*/
-	
-
 
 	printf("Ending main\n");
 	return 0;
