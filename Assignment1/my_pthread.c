@@ -158,6 +158,35 @@ int enqueueRear(my_pthread_t * newThread){
 }
 
 
+/*
+	This function dequeues an item from the front
+
+	INPUT: The thread to add
+	OUTPUT: 1 on succcess, zero on failure
+
+*/
+
+my_pthread_t * dequeueFront(){
+
+	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
+	//Same as enqueueFront
+	if (queueSize == 0){
+		return NULL;
+	}
+	else if (queueSize == 0) {
+		queueSize--;
+		return tail;
+	}
+
+	my_pthread_t * returnThread;
+	returnThread = tail->next;
+	tail->next = returnThread->next;
+	returnThread->next = NULL;
+	return returnThread;
+	
+}
+
+
 
 
 
