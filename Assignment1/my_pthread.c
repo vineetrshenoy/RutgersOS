@@ -31,6 +31,12 @@ typedef struct {
 
 typedef struct{} my_pthread_mutexattr_t;
 
+typedef struct my_pthread_mutex_node 
+{
+	my_pthread_mutex_t *mutex;
+	my_pthread_t *holder;
+} my_pthread_mutex_node;
+
 ucontext_t ucp, ucp_two, ucp_main;
 volatile int x;
 struct itimerval timer;
@@ -180,33 +186,33 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
 
-	
+	// mutex queue is needed
+	// new mutex node added to mutex queue
+	// return 0 for success, -1 for failure
 
 }
 
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 
-	if (*mutex.__m_lock.__status != 0) {
-		my_pthread_yield();
-	}
-	else {
-		*mutex.__m_lock.__status == 1;
-	}
-	return 0;
-
+	// dequeFront() of mutex queue
+	// mutex node needs "holder" characteristic
+	// holder = currentthread
+	// return 0, -1 for failure
 }
 
  int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 
-	*mutex.__m_lock.__status == 0;
-	return 0;
+	// get front mutex node from queue
+	// if current thread == holder of node
+	// return 0, -1 for failure
 
  }
 
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
-	*mutex = NULL;
-	return 0;
+	// my_pthread_mutex_unlock(*mutex) to make sure
+	// deallocate stuff
+	// return 0, -1 for failure
 
 }
 
