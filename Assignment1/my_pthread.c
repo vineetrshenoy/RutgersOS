@@ -16,11 +16,13 @@ typedef struct my_pthread_t {
 }my_pthread_t;
 
 ucontext_t ucp, ucp_two, ucp_main;
-volatile int x;
+
 struct itimerval timer;
 my_pthread_t * tail;
+int threadIDS = 1;
 int queueSize = 0;
-
+int isInitialized = 0;
+int id;
 
 
 
@@ -36,8 +38,6 @@ int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*func
 		3. Stack size
 		4. uc_link 
 
-
-
 		Have some global variable that checks if my_pthread_create has not been run before. If not,
 		1. Initialize priority queues
 		2. Create a context for the main
@@ -45,6 +45,30 @@ int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*func
 		4. Only keep one version of main use version on the queue
 	*/
 
+	if(getcontext(thread->context) == -1){
+		printf("Error getting context. Returning -1\n");
+		return -1;
+	}
+
+	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
+	thread->context.uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
+	thread->context.uc_stack.ss_size = STACK_SIZE;	//describes size of stack
+	thread->context.uc_link = NULL;
+	thread->id = threadIDS;
+	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
+	enqueueRear(thread);	//Adds thread to priority queue
+
+	//If this is the first time calling my_pthread_create()
+	if (isInitialized == 0){
+		isInitialized = 1;	//change isInitialized flag
+		my_pthread_t * mainThread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //malloc space
+		mainThread->thread_id = 0;	//Zero will always be thread id for main
+		getcontext(mainThread->context);	//Saves the current context of main
+		enqueueRear(mainThread);	//Adds main the the priority queue
+
+	}
+
+	//my_pthread_yield();
 
 
 
