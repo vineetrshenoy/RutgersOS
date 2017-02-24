@@ -117,6 +117,12 @@ void my_pthread_yield(){
 
 	// setitimer stuff
 
+	timer.it_interval.tv_usec = 50000;
+	timer.it_value.tv_usec = 50000;
+	timer.it_interval.tv_sec = 0;
+	timer.it_value.tv_sec = 0;
+	setitimer(ITIMER_REAL, &timer, NULL);
+
 	return;
 
 
