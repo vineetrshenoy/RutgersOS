@@ -6,58 +6,20 @@
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include "my_pthread_t.h"
 
 #define STACK_SIZE 100000
-
-typedef enum {
-	ACTIVE,
-	WAITING,
-	COMPLETED
-} my_pthread_state;
-
-typedef struct my_pthread_t {
-
-	int thread_id;
-	ucontext_t * context;
-	char * string;
-	struct my_pthread_t * next;
-	my_pthread_state state;
-	void* return_value;
-
-}my_pthread_t;
-
-typedef struct queue_node {
-	int priority;
-	my_pthread_t* thread;
-	struct queue_node *next;
-
-}queue_node;
-
-typedef struct{} my_pthread_attr_t;
-
-typedef struct {
-	int mutex_id;
-} my_pthread_mutex_t;
-
-typedef struct{} my_pthread_mutexattr_t;
-
-typedef struct my_pthread_mutex_node 
-{
-	my_pthread_mutex_t *mutex;
-	my_pthread_t *holder;
-} my_pthread_mutex_node;
 
 ucontext_t ucp, ucp_two, ucp_main;
 
 struct itimerval timer;
-my_pthread_t * tail;
+queue_node * tail;
 int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
 int current_thread_id = 1;
-
-
 
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
@@ -86,7 +48,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	
 
 	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	enqueue(thread, tail, 0);	//Adds thread to priority queue
+	tail = enqueue(thread, tail, 0);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -96,7 +58,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
-		enqueue(mainThread, tail, 0);	//Adds main the the priority queue
+		tail = enqueue(mainThread, tail, 0);	//Adds main the the priority queue
 
 	}
 
@@ -140,6 +102,8 @@ void my_pthread_yield(){
 
 	// check if current thread is done doing stuff
 	// if not, add it to a lower priority queue
+
+	/*
 	my_pthread_t* current_thread = dequeueFront(); // of ready queue
 	if (current_thread->state != COMPLETED) {
 		enqueueFront(current_thread); // to lower priority queue
@@ -161,7 +125,7 @@ void my_pthread_yield(){
 	timer.it_value.tv_usec = 50000;
 	timer.it_interval.tv_sec = 0;
 	timer.it_value.tv_sec = 0;
-	setitimer(ITIMER_REAL, &timer, NULL);
+	setitimer(ITIMER_REAL, &timer, NULL);*/
 
 	return;
 
@@ -179,7 +143,7 @@ void my_pthread_exit(void * value_ptr){
 	4. my_pthread_yield
  
 	*/
-
+/*
 	// get completed thread and set return value and state
 	my_pthread_t* current_thread = dequeueFront();
 	current_thread->return_value = value_ptr;
@@ -189,7 +153,7 @@ void my_pthread_exit(void * value_ptr){
 	enqueueFront(current_thread);
 
 	my_pthread_yield();
-
+*/
 	return;
 
 
@@ -204,7 +168,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	2. Call yield()
 	
 	*/
-
+/*
 	// not sure how to do this but it should be something like this:
 	// get current thread (calling thread)
 	my_pthread_t* current_thread = dequeueFront();
@@ -225,7 +189,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	if (value_ptr != NULL) {
 		return thread->return_value; // return target thread value
 	}
-
+*/
 	return 0;
 
 }
@@ -287,27 +251,33 @@ queue_node* enqueue(my_pthread_t * newThread, queue_node *tail, int priority){
 /*
 	deqeue takes a queue_node as input and removes the last queue_node in the queue
 	Returns the last queue_node in the queue
-	Must be called in the form: dequeue(queue)
+	Must be called in the form: dequeue(&queue)
 
 */
-queue_node* dequeue(queue_node *tail){
-	if(tail == NULL)
+queue_node* dequeue(queue_node ** tail){
+	
+	if((*tail) == NULL)
 		return NULL;
-	queue_node *iter;
-	queue_node *prev;
-	iter = tail;
+	queue_node *iter = NULL;
+	queue_node *prev = NULL;
+	iter = (*tail);
 	while(iter->next){
 		prev = iter;
 		iter = iter->next;
 	}
-	prev->next = NULL;
+	if(prev){
+		prev->next = NULL;
+	}else{
+		(*tail) = NULL;
+	}
 	return iter;
 }
 
 
 void printQueue(queue_node *tail){
 	queue_node *iter = tail;
-	while(iter->next){
+	//printf("%s\n", iter->thread->string);
+	while(iter){
 		printf("%s\n", iter->thread->string);
 		iter = iter->next;
 	}
@@ -319,7 +289,7 @@ void printQueue(queue_node *tail){
 	INPUT: The thread to add
 	OUTPUT: 1 on succcess, zero on failure
 */
-
+/*
 int enqueueFront(my_pthread_t * newThread){
 
 	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
@@ -337,14 +307,14 @@ int enqueueFront(my_pthread_t * newThread){
 	queueSize++;
 	return 1;
 }
-
+*/
 
 /*
 	This function inputs a new thread at the rear of the queue
 	INPUT: The thread to add
 	OUTPUT: 1 on succcess, zero on failure
 */
-
+/*
 int enqueueRear(my_pthread_t * newThread){
 
 	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
@@ -364,14 +334,14 @@ int enqueueRear(my_pthread_t * newThread){
 	queueSize++;
 	return 1;
 }
-
+*/
 
 /*
 	This function dequeues an item from the front
 	INPUT: The thread to add
 	OUTPUT: 1 on succcess, zero on failure
 */
-
+/*
 my_pthread_t * dequeueFront(){
 
 	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
@@ -394,7 +364,7 @@ my_pthread_t * dequeueFront(){
 	
 }
 
-
+*/
 
 
 
@@ -421,12 +391,39 @@ void handler(int sig){
 
 int main(){
 	
+	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
+	thread->string = "this is the first thread";
+
+	my_pthread_t * thread2 = malloc(sizeof(my_pthread_t));
+	thread2->string = "this is the second thread";
+
+	my_pthread_t * thread3 = malloc(sizeof(my_pthread_t));
+	thread3->string = "this is the third thread";
+
+	queue_node * queue = NULL;
+
+	queue = enqueue(thread, queue, 0);
+	queue = enqueue(thread2, queue, 0);
+	queue = enqueue(thread3, queue, 0);
+
+	printQueue(queue);
+
+	printf("removing: %s\n", dequeue(&queue)->thread->string);
+	printf("removing: %s\n", dequeue(&queue)->thread->string);
+	printf("removing: %s\n", dequeue(&queue)->thread->string);
+
+
+	//if(temp->thread->string){
+	//	printf("%s\n", temp->thread->string);
+	//}
+
+
 	//void * (*functionPointer)(void *);
 	//functionPointer = &printFunction;
 
 	//void(*otherFunction)();
 	//otherFunction = &printFunction;
-
+/*
 	my_pthread_t * thread;
 
 	my_pthread_create(thread, NULL, printFunction, NULL);	
@@ -434,13 +431,12 @@ int main(){
 	printf("The tail node is %d\n", tail->thread_id);
 	printf("The next node is %d\n", tail->next->thread_id);
 
-	my_pthread_t * node = dequeueFront();
 	printf("Thread id is %d\n", node->thread_id);
 
 	//ucontext_t * otherContext = node->context;
 	//makecontext(otherContext, otherFunction,0);
 	setcontext(node->context);	
-	
+	*/
 
 	printf("Ending main\n");
 	return 0;
