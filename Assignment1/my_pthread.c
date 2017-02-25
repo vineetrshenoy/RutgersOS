@@ -246,15 +246,15 @@ void handler(int sig){
 
 int main(){
 	
-	void * (*functionPointer)(void *);
-	functionPointer = &printFunction;
+	//void * (*functionPointer)(void *);
+	//functionPointer = &printFunction;
 
 	//void(*otherFunction)();
 	//otherFunction = &printFunction;
 
 	my_pthread_t * thread;
 
-	my_pthread_create(thread, NULL, (void *)functionPointer, NULL);	
+	my_pthread_create(thread, NULL, printFunction, NULL);	
 
 	printf("The tail node is %d\n", tail->thread_id);
 	printf("The next node is %d\n", tail->next->thread_id);
