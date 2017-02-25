@@ -47,7 +47,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	thread->state = ACTIVE;	//Sets thread to active stat
 	
 
-	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
+	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
 	tail = enqueue(thread, tail, 0);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
