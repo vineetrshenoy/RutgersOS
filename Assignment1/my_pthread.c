@@ -61,7 +61,7 @@ int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*func
 	
 
 	thread->thread_id = threadIDS; //Gives the thread an ID
-	makecontext(thread->context, (void (*) (void))&function, 1, arg); //creates with function. Users usually pass a struct of arguments?
+	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
 	enqueueRear(thread);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
@@ -249,8 +249,8 @@ int main(){
 	void * (*functionPointer)(void *);
 	functionPointer = &printFunction;
 
-	void(*otherFunction)();
-	otherFunction = &printFunction;
+	//void(*otherFunction)();
+	//otherFunction = &printFunction;
 
 	my_pthread_t * thread;
 
@@ -262,9 +262,9 @@ int main(){
 	my_pthread_t * node = dequeueFront();
 	printf("Thread id is %d\n", node->thread_id);
 
-	ucontext_t * otherContext = node->context;
-	makecontext(otherContext, otherFunction,0);
-	setcontext(otherContext);	
+	//ucontext_t * otherContext = node->context;
+	//makecontext(otherContext, otherFunction,0);
+	setcontext(node->context);	
 	
 
 	printf("Ending main\n");
