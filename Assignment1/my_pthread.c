@@ -22,7 +22,7 @@ my_pthread_t * tail;
 int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
-int id;
+
 
 
 
@@ -45,23 +45,30 @@ int my_pthread_create(my_pthread_t *thread, pthread_attr_t * attr, void * (*func
 		4. Only keep one version of main use version on the queue
 	*/
 
+	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
+	thread->context = (ucontext_t *) malloc(sizeof(ucontext_t)); 	//Also malloc space for ucontext
+
+	//Get context to initialize new thread
 	if(getcontext(thread->context) == -1){
 		printf("Error getting context. Returning -1\n");
 		return -1;
 	}
 
-	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
-	thread->context.uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
-	thread->context.uc_stack.ss_size = STACK_SIZE;	//describes size of stack
-	thread->context.uc_link = NULL;
-	thread->id = threadIDS;
-	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
+	ucontext_t * newContext = thread->context;
+	(*newContext).uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
+	(*newContext).uc_stack.ss_size = STACK_SIZE;	//describes size of stack
+	(*newContext).uc_link = NULL;
+	
+
+	thread->thread_id = threadIDS; //Gives the thread an ID
+	makecontext(thread->context, (void (*) (void))&function, 1, arg); //creates with function. Users usually pass a struct of arguments?
 	enqueueRear(thread);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
 		isInitialized = 1;	//change isInitialized flag
-		my_pthread_t * mainThread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //malloc space
+		my_pthread_t * mainThread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //malloc space for the my_pthread struct
+		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		enqueueRear(mainThread);	//Adds main the the priority queue
@@ -238,41 +245,26 @@ void handler(int sig){
 
 
 int main(){
-	my_pthread_t * counter;
+	
+	void * (*functionPointer)(void *);
+	functionPointer = &printFunction;
 
-	// The first thread
-	my_pthread_t * threadOne = (my_pthread_t *) malloc(sizeof(my_pthread_t));
-	threadOne->string = "This is the first thread";
-	enqueueFront(threadOne);
+	void(*otherFunction)();
+	otherFunction = &printFunction;
 
-	//The second thread
-	my_pthread_t * threadTwo = (my_pthread_t *) malloc(sizeof(my_pthread_t));
-	threadTwo->string = "This is the second thread";
-	enqueueFront(threadTwo);
+	my_pthread_t * thread;
 
-	//The second thread
-	my_pthread_t * threadThree = (my_pthread_t *) malloc(sizeof(my_pthread_t));
-	threadThree->string = "This is the third thread";
-	enqueueFront(threadThree);
+	my_pthread_create(thread, NULL, (void *)functionPointer, NULL);	
 
-	printf("%s and queueSize %d\n", tail->string, queueSize);
-	counter = tail->next;
-	while (counter != tail){
-		printf("%s and queueSize %d\n", counter->string, queueSize);
-		counter = counter->next;
-	}
+	printf("The tail node is %d\n", tail->thread_id);
+	printf("The next node is %d\n", tail->next->thread_id);
 
+	my_pthread_t * node = dequeueFront();
+	printf("Thread id is %d\n", node->thread_id);
 
-	my_pthread_t * value = dequeueFront();
-	printf("%s and queue size %d\n", value->string, queueSize);
-
-	my_pthread_t * valuetwo= dequeueFront();
-	printf("%s and queue size %d\n", valuetwo->string, queueSize);
-
-	my_pthread_t * valuethree = dequeueFront();
-	printf("%s and queue size %d\n", valuethree->string, queueSize);
-
-	my_pthread_t * nullValue = dequeueFront();
+	ucontext_t * otherContext = node->context;
+	makecontext(otherContext, otherFunction,0);
+	setcontext(otherContext);	
 	
 
 	printf("Ending main\n");
