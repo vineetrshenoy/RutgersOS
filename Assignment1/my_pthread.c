@@ -370,7 +370,7 @@ my_pthread_t * dequeueFront(){
 
 
 
-void printFunction(){
+void * printFunction(void *arg){
 	
 	
 	printf("Waiting for signal handler\n");
@@ -426,7 +426,7 @@ int main(){
 /*
 	my_pthread_t * thread;
 
-	my_pthread_create(thread, NULL, printFunction, NULL);	
+	my_pthread_create(thread, NULL, &printFunction, NULL);	
 
 	printf("The tail node is %d\n", tail->thread_id);
 	printf("The next node is %d\n", tail->next->thread_id);
