@@ -62,19 +62,7 @@ int current_thread_id = 1;
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
-	/*
-	First time around,this function returns two contexts.
-		1. Create a new context
-		2. Allocate stack space
-		3. Stack size
-		4. uc_link 
-
-		Have some global variable that checks if my_pthread_create has not been run before. If not,
-		1. Initialize priority queues
-		2. Create a context for the main
-		3. Add to the ready queue
-		4. Only keep one version of main use version on the queue
-	*/
+	
 
 	// ------VINEET'S CODE ----
 	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
@@ -93,8 +81,12 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	
 
 	thread->thread_id = threadIDS; //Gives the thread an ID
+	threadIDS++;
+	thread->state = ACTIVE;	//Sets thread to active stat
+	
+
 	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	enqueueRear(thread);	//Adds thread to priority queue
+	enqueue(thread, tail, 0);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -103,7 +95,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
-		enqueueRear(mainThread);	//Adds main the the priority queue
+		mainThread->state = ACTIVE;	//Sets thread to active stat
+		enqueue(mainThread, tail, 0);	//Adds main the the priority queue
 
 	}
 
