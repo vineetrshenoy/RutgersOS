@@ -390,7 +390,7 @@ void handler(int sig){
 
 
 int main(){
-	
+	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
 
@@ -411,7 +411,7 @@ int main(){
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
-
+*/
 
 	//if(temp->thread->string){
 	//	printf("%s\n", temp->thread->string);
@@ -423,20 +423,20 @@ int main(){
 
 	//void(*otherFunction)();
 	//otherFunction = &printFunction;
-/*
+
 	my_pthread_t * thread;
 
 	my_pthread_create(thread, NULL, &printFunction, NULL);	
 
-	printf("The tail node is %d\n", tail->thread_id);
-	printf("The next node is %d\n", tail->next->thread_id);
+	printf("The tail node is %d\n", tail->thread->thread_id);
+	printf("The next node is %d\n", tail->next->thread->thread_id);
 
-	printf("Thread id is %d\n", node->thread_id);
+	//printf("Thread id is %d\n", node->thread_id);
 
 	//ucontext_t * otherContext = node->context;
 	//makecontext(otherContext, otherFunction,0);
-	setcontext(node->context);	
-	*/
+	setcontext(tail->next->thread->context);	
+	
 
 	printf("Ending main\n");
 	return 0;
