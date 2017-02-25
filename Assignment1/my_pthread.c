@@ -1,8 +1,6 @@
 // Naorin Hossain, Vasishta Kalinadhabhotta, Vineet Shenoy
 // Tested on: 
 
-//test for commit
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
@@ -27,6 +25,13 @@ typedef struct my_pthread_t {
 	void* return_value;
 
 }my_pthread_t;
+
+typedef struct queue_node {
+	int priority;
+	my_pthread_t* thread;
+	struct queue_node *next;
+
+}queue_node;
 
 typedef struct{} my_pthread_attr_t;
 
@@ -265,6 +270,54 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 	// deallocate stuff
 	// return 0, -1 for failure
 
+}
+
+/* PRIORITY QUEUE METHODS */
+
+/*
+	enqueue takes a thread, queue_node, and priority as input and creates a new queue_node and places it in the rear of the queue
+	Returns the new tail of the queue
+	Must be called in the form: queue = enqueue(thread, queue, priority)
+
+*/
+queue_node* enqueue(my_pthread_t * newThread, queue_node *tail, int priority){
+	queue_node *new_node = malloc(sizeof(queue_node));
+	new_node->thread = newThread;
+	new_node->priority = priority;
+	if(tail==NULL){
+		new_node->next = NULL;
+		return new_node;
+	}
+	new_node->next = tail;
+	return new_node;
+}
+/*
+	deqeue takes a queue_node as input and removes the last queue_node in the queue
+	Returns the last queue_node in the queue
+	Must be called in the form: dequeue(queue)
+
+*/
+queue_node* dequeue(queue_node *tail){
+	if(tail == NULL)
+		return NULL;
+	queue_node *iter;
+	queue_node *prev;
+	iter = tail;
+	while(iter->next){
+		prev = iter;
+		iter = iter->next;
+	}
+	prev->next = NULL;
+	return iter;
+}
+
+
+void printQueue(queue_node *tail){
+	queue_node *iter = tail;
+	while(iter->next){
+		printf("%s\n", iter->thread->string);
+		iter = iter->next;
+	}
 }
 
 
