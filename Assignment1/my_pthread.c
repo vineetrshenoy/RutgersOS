@@ -71,7 +71,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		4. Only keep one version of main use version on the queue
 	*/
 
-
+	// ------VINEET'S CODE ----
 	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
 	thread->context = (ucontext_t *) malloc(sizeof(ucontext_t)); 	//Also malloc space for ucontext
 
@@ -113,6 +113,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 
 
+	/*
+	----------NAORIN'S CODE --------------------
 	// add context to thread
 	ucontext_t* b = (ucontext_t*) malloc(sizeof(ucontext_t*));
 	thread->context = b;
@@ -127,7 +129,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 
 	return 0;
-
+	*/
 
 }
 
