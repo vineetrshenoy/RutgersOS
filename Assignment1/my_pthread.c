@@ -3,14 +3,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <bits/atomic.h>
 #include "my_pthread_t.h"
-#include <asm/bitops.h>
-#include <asm/atomic.h>
 
 #define STACK_SIZE 100000
 
@@ -23,10 +21,13 @@ int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
 
-my_pthread_t * current;
+my_pthread_t * current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
 
+void timer_handler (int signum){
+	my_pthread_yield();
+}
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
@@ -54,7 +55,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	
 
 	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	tail = enqueue(thread, tail, 0);	//Adds thread to priority queue
+	queue_priority_1 = enqueue(thread, queue_priority_1, 0);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -64,11 +65,11 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
-		tail = enqueue(mainThread, tail, 0);	//Adds main the the priority queue
+		//queue_priority_1 = enqueue(mainThread, queue_priority_1, 0);	//Adds main the the priority queue
 
 	}
 
-	//my_pthread_yield();
+	my_pthread_yield();
 
 	// something like this should go here to add the main function to the top of the queue:
 	//if queuesize == 0:
@@ -109,14 +110,30 @@ void my_pthread_yield(){
 	// check if current thread is done doing stuff
 	// if not, add it to a lower priority queue
 
+		// setitimer stuff
+	struct sigaction sa;
+
+	/* Install timer_handler as the signal handler for SIGVTALRM. */
+	memset (&sa, 0, sizeof (sa));
+	sa.sa_handler = &timer_handler;
+	sigaction (SIGALRM, &sa, NULL);
+
+	timer.it_value.tv_sec = 0;
+	timer.it_value.tv_usec = 500000;
+	timer.it_interval.tv_sec = 0;
+	timer.it_interval.tv_usec = 500000;
+
 	int priority = 0;
-	
+	printQueue(queue_priority_1);
 	queue_node* current_thread_node = dequeue(&queue_priority_1); // of ready queue
+	printQueue(queue_priority_1);
 	//active thread is in priority 1
 	if(current_thread_node){
 		my_pthread_t *current_thread = current_thread_node->thread;
+		printf("1. Thread found in priority 1: %i\n", current_thread->thread_id);
 
 		if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
+			printf("moving thread to priority 2: %i\n", current_thread->thread_id);
 			current_thread->state = WAITING;
 			queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send to lower priority queue
 		}
@@ -124,17 +141,31 @@ void my_pthread_yield(){
 		//next thread to be scheduled
 		//the thread stays at the top of queue_priority_1 and gets scheduled 
 		queue_node* next_thread_node = peek(queue_priority_1);
-		if(!next_thread_node){
+		priority = 1;
+		if(next_thread_node==NULL){
 			priority = 2;
 			next_thread_node = peek(queue_priority_2); // if there is no threads left in priority 1, then take it from priority 2, we know there exists one because we enqueued one earlier
 		}
-		priority = 1;
 		my_pthread_t* next_thread = next_thread_node->thread; 
+
+		printf("2. Next thread found (to be scheduled), in priority %i: %i\n", priority, next_thread->thread_id);
+
 		next_thread->state = ACTIVE;
 
-		current_thread_id = next_thread->thread_id;
-		current = next_thread;
-		setcontext(next_thread->context);
+		if(current == NULL){
+			/* Start a virtual timer. It counts down whenever this process is
+	  		executing. */
+	  		current = next_thread;
+			setitimer (ITIMER_REAL, &timer, NULL);
+
+			setcontext(next_thread->context);
+		}else{
+			my_pthread_t *temp = current;
+			current = next_thread;
+
+			setitimer(ITIMER_REAL, &timer, NULL);
+			swapcontext(temp->context, next_thread->context);
+		}
 
 	}
 	else{
@@ -146,32 +177,40 @@ void my_pthread_yield(){
 		if(current_thread_node){
 			my_pthread_t *current_thread = current_thread_node->thread;
 
+			printf("3. Thread found in priority 2: %i\n", current_thread->thread_id);
+
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 				current_thread->state = WAITING;
-				queue_priority_2 = enqueue(current_thread, queue_priority_1ority_2, 2); //send back to lower priority queue
+				queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send back to lower priority queue
+				printf("Thread found being sent back to priority 2: %i\n", current_thread->thread_id);
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
 			priority = 2;
 			my_pthread_t *next_thread = next_thread_node->thread;
 			next_thread->state = ACTIVE;
+			printf("4. Next thread found (to be scheduled), in priority 2: %i\n", next_thread->thread_id);
 
-			current_thread_id = next_thread->thread_id;
-			current = next_thread;
-			setcontext(next_thread->context);
+			if(current == NULL){
+				/* Start a virtual timer. It counts down whenever this process is
+		  		executing. */
+		  		current = next_thread;
+				setitimer (ITIMER_REAL, &timer, NULL);
+
+				setcontext(next_thread->context);
+			}else{
+				my_pthread_t *temp = current;
+				current = next_thread;
+
+				setitimer(ITIMER_REAL, &timer, NULL);
+				swapcontext(temp->context, next_thread->context);
+			}
 		}
 		else{
+			printf("5. There are no threads available\n");
 			//there are no threads available
 			return;
 		}
 	}
-
-	// setitimer stuff
-
-	timer.it_interval.tv_usec = 50000*priority;
-	timer.it_value.tv_usec = 50000*priority;
-	timer.it_interval.tv_sec = 0;
-	timer.it_value.tv_sec = 0;
-	setitimer(ITIMER_REAL, &timer, NULL);
 
 	return;
 
@@ -243,14 +282,20 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 
 
+int FetchAndAdd(int *ptr) {
+	int old = *ptr;
+	*ptr = old + 1;
+	return old;
+}
+
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
 
 	// mutex queue is needed
 	// new mutex node added to mutex queue
 	// return 0 for success, -1 for failure
 
-	mutex = (my_pthread_mutex_t *) malloc(sizeof(my_pthread_mutex_t));
-	mutex->mutex_id = 0;
+	mutex->ticket = 0;
+	mutex->turn = 0;
 	return 0;
 
 }
@@ -261,27 +306,44 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// mutex node needs "holder" characteristic
 	// holder = currentthread
 	// return 0, -1 for failure
+/*
+	int i, c;
+	// Spin and try to take lock
+	for (i = 0; i < 100; i++) {
+		c = cmpxchg(mutex, 0, 1);
+		if (!c) return 0;
+		cpu_relax();
+	}
+	// The lock is now contended
+	if (c == 1) c = xchg_32(mutex, 2);
+	while(c) {
+		// wait in the kernel
+		sys_futex(mutex, FUTEX_WAIT_PRIVATE, 2, NULL, NULL, 0);
+		c = xchg_32(mutex, 2);
+	}
+*/
 
-	int i;
+	int myturn = FetchAndAdd(&mutex->ticket);
+	while (mutex->turn != myturn)
+		//my_pthread_yield(); //spin
+	return 0;
+	/*
 	int *m_id = (int*) mutex->mutex_id;
-
 	if (test_and_set_bit(31, (void) m_id) == 0) {
 		return 0;
 	}
-
 	atomic_inc((atomic_t) m_id);
-
 	while (1) {
 		if (test_and_set_bit(31, (void) m_id) == 0) {
 			atomic_dec((atomic_t) m_id);
 			return 0;
 		}
-
 		i = *m_id;
 		if (i >= 0)
 			continue;
 		futex_wait(m_id, i);
 	}
+	*/
 }
 
  int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
@@ -290,10 +352,33 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// if current thread == holder of node
 	// return 0, -1 for failure
 
+ 	/*
  	int *m_id = (int*) mutex->mutex_id;
  	if (atomic_add(0x80000000, (atomic_t) m_id))
  		return 0;
  	futex_wake(m_id);
+ 	*/
+
+ 	/*int i;
+ 	// unlock, and if not contended then exit
+ 	if (*mutex == 2) {
+ 		*mutex = 0;
+ 	}
+ 	else if (xchg_32(mutex, 0) == 1) return 0;
+ 	// spin and hope someone takes the lock
+ 	for (i = 0; i < 200; i++) {
+ 		if (*mutex) {
+ 			// need to set to state 2 beause there may be waiters
+ 			if (cmpxchg(mutex, 1, 2)) return 0;
+ 		}
+ 		cpu_relax();
+ 	}
+ 	// we need to wake someone up
+ 	sys_futex(mutex, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);*/
+
+ 	mutex->turn = mutex->turn + 1;
+
+ 	return 0;
 
  }
 
@@ -302,6 +387,9 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 	// my_pthread_mutex_unlock(*mutex) to make sure
 	// deallocate stuff
 	// return 0, -1 for failure
+	
+	free(mutex);
+	return 0;
 
 }
 
@@ -449,7 +537,7 @@ void * printFunction(void *arg){
 	
 	
 	printf("Waiting for signal handler\n");
-	sleep(1);
+	sleep(4);
 	printf("We are here now \n");
 
 	
@@ -458,13 +546,17 @@ void * printFunction(void *arg){
 
 
 void handler(int sig){
-	printf("In signal handler\n");
-	setcontext(&ucp_main);
+	//printf("In signal handler\n");
+	//setcontext(&ucp_main);
 }
 
 
 
 int main(){
+
+	my_pthread_t *thread;
+	my_pthread_create(thread, NULL, &printFunction, NULL);
+
 	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
@@ -492,7 +584,7 @@ int main(){
 
 	//void(*otherFunction)();
 	//otherFunction = &printFunction;
-
+/*
 	my_pthread_t * thread;
 
 	my_pthread_create(thread, NULL, &printFunction, NULL);	
@@ -517,7 +609,7 @@ int main(){
 	//makecontext(otherContext, otherFunction,0);
 	setcontext(tail->next->thread->context);	
 	
-
+*/
 	printf("Ending main\n");
 	return 0;
 }
