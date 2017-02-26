@@ -19,8 +19,8 @@ int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
-int current_thread_id = 1;
 
+my_pthread_t * current;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
 
@@ -128,6 +128,7 @@ void my_pthread_yield(){
 		next_thread->state = ACTIVE;
 
 		current_thread_id = next_thread->thread_id;
+		current = next_thread;
 		setcontext(next_thread->context);
 
 	}
@@ -142,7 +143,7 @@ void my_pthread_yield(){
 
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 				current_thread->state = WAITING;
-				queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send back to lower priority queue
+				queue_priority_2 = enqueue(current_thread, queue_priority_1ority_2, 2); //send back to lower priority queue
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
 			priority = 2;
@@ -150,6 +151,7 @@ void my_pthread_yield(){
 			next_thread->state = ACTIVE;
 
 			current_thread_id = next_thread->thread_id;
+			current = next_thread;
 			setcontext(next_thread->context);
 		}
 		else{
@@ -182,6 +184,11 @@ void my_pthread_exit(void * value_ptr){
 	4. my_pthread_yield
  
 	*/
+
+
+
+
+
 /*
 	// get completed thread and set return value and state
 	my_pthread_t* current_thread = dequeueFront();
