@@ -70,7 +70,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 	}
 
-	my_pthread_yield();
+	//my_pthread_yield();
 
 	// something like this should go here to add the main function to the top of the queue:
 	//if queuesize == 0:
@@ -539,6 +539,7 @@ void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
 	sleep(4);
 	printf("We are here now \n");
+	my_pthread_yield();
 }
 void * counterFunction(void *arg){
 	for (int i = 0; i < 20; i++)
@@ -546,6 +547,7 @@ void * counterFunction(void *arg){
 		printf("%i\n", i);
 		sleep(1);
 	}
+	my_pthread_yield();
 }
 
 
@@ -562,6 +564,7 @@ int main(){
 	my_pthread_t *thread2;
 	my_pthread_create(thread, NULL, &counterFunction, NULL);
 	my_pthread_create(thread2, NULL, &printFunction, NULL);
+	my_pthread_yield();
 
 	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
