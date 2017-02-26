@@ -21,6 +21,9 @@ int isInitialized = 0;
 int totalThreads = 0;
 int current_thread_id = 1;
 
+queue_node* queue_priority_1 = NULL;
+queue_node* queue_priority_2 = NULL;
+
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
