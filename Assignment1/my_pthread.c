@@ -14,12 +14,15 @@
 ucontext_t ucp, ucp_two, ucp_main;
 
 struct itimerval timer;
-queue_node * tail;
+//queue_node * tail = NULL;
 int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
 int current_thread_id = 1;
+
+queue_node * queue_priority_1 = NULL; //queue for priority of 1 (highest priority)
+queue_node * queue_priority_2 = NULL; //queue for priority of 2 (lowest priority)
 
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
@@ -44,11 +47,11 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 	thread->thread_id = threadIDS; //Gives the thread an ID
 	threadIDS++;
-	thread->state = ACTIVE;	//Sets thread to active stat
+	thread->state = ACTIVE;	//Sets thread to active state
 	
 
 	makecontext(thread->context, function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	tail = enqueue(thread, tail, 0);	//Adds thread to priority queue
+	queue_priority_1 = enqueue(thread, queue_priority_1, 0);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -58,11 +61,11 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
-		tail = enqueue(mainThread, tail, 0);	//Adds main the the priority queue
+		queue_priority_1 = enqueue(mainThread, queue_priority_1, 0);	//Adds main the the priority queue
 
 	}
 
-	//my_pthread_yield();
+	my_pthread_yield();
 
 	// something like this should go here to add the main function to the top of the queue:
 	//if queuesize == 0:
@@ -103,29 +106,67 @@ void my_pthread_yield(){
 	// check if current thread is done doing stuff
 	// if not, add it to a lower priority queue
 
-	/*
-	my_pthread_t* current_thread = dequeueFront(); // of ready queue
-	if (current_thread->state != COMPLETED) {
-		enqueueFront(current_thread); // to lower priority queue
-	}
-	my_pthread_t* next_thread = dequeueFront(); //of ready queue
-	enqueueFront(next_thread); // just to keep it on the queue as the current thing
+	int priority = 0;
+	
+	queue_node* current_thread_node = dequeue(&queue_priority_1); // of ready queue
+	//active thread is in priority 1
+	if(current_thread_node){
+		my_pthread_t *current_thread = current_thread_node->thread;
 
-	// just in case the current thread is also the next thread
-	if (current_thread_id == next_thread->thread_id) {
+		if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
+			current_thread->state = WAITING;
+			queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send to lower priority queue
+		}
+
+		//next thread to be scheduled
+		//the thread stays at the top of queue_priority_1 and gets scheduled 
+		queue_node* next_thread_node = peek(queue_priority_1);
+		if(!next_thread_node){
+			priority = 2;
+			next_thread_node = peek(queue_priority_2); // if there is no threads left in priority 1, then take it from priority 2, we know there exists one because we enqueued one earlier
+		}
+		priority = 1;
+		my_pthread_t* next_thread = next_thread_node->thread; 
+		next_thread->state = ACTIVE;
+
+		current_thread_id = next_thread->thread_id;
+		setcontext(next_thread->context);
+
+	}
+	else{
+		//There are no threads running in priority 1, so we must check priority 2 and schedule from there as well
+
+		current_thread_node = dequeue(&queue_priority_2);\
+
+		//active thread is in priority 2
+		if(current_thread_node){
+			my_pthread_t *current_thread = current_thread_node->thread;
+
+			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
+				current_thread->state = WAITING;
+				queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send back to lower priority queue
+			}
+			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
+			priority = 2;
+			my_pthread_t *next_thread = next_thread_node->thread;
+			next_thread->state = ACTIVE;
+
+			current_thread_id = next_thread->thread_id;
+			setcontext(next_thread->context);
+		}
+		else{
+			//there are no threads available
 			return;
+		}
 	}
-
-	current_thread_id = next_thread->thread_id;
-	setcontext(next_thread->context);
 
 	// setitimer stuff
 
-	timer.it_interval.tv_usec = 50000;
-	timer.it_value.tv_usec = 50000;
+	timer.it_interval.tv_usec = 50000*priority;
+	timer.it_value.tv_usec = 50000*priority;
 	timer.it_interval.tv_sec = 0;
 	timer.it_value.tv_sec = 0;
-	setitimer(ITIMER_REAL, &timer, NULL);*/
+	setitimer(ITIMER_REAL, &timer, NULL);
 
 	return;
 
@@ -273,6 +314,22 @@ queue_node* dequeue(queue_node ** tail){
 	return iter;
 }
 
+/*
+ peek takes a queue_node as in put and returns the top node in the queue without modifying it
+ Must be called in the form: peek(queue)
+*/
+queue_node* peek(queue_node * tail){
+	if(tail == NULL){
+		return NULL;
+	}
+	queue_node *iter = NULL;
+	iter = tail;
+	while(iter->next){
+		iter = iter->next;
+	}
+	return iter;
+}
+
 
 void printQueue(queue_node *tail){
 	queue_node *iter = tail;
@@ -385,6 +442,7 @@ void printFunction(){
 void handler(int sig){
 	printf("In signal handler\n");
 	setcontext(&ucp_main);
+	my_pthread_yield();
 }
 
 

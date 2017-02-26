@@ -66,20 +66,27 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
 // Desetroys a given mutex. Mutex should be unlocked before doing so.
 
 /*
-	enqueue takes a thread, queue_node, and priority as input and creates a new queue_node and places it in the rear of the queue
-	Returns the new tail of the queue
-	Must be called in the form: queue = enqueue(thread, queue, priority)
+ enqueue takes a thread, queue_node, and priority as input and creates a new queue_node and places it in the rear of the queue
+ Returns the new tail of the queue
+ Must be called in the form: queue = enqueue(thread, queue, priority)
 */
 queue_node* enqueue(my_pthread_t * newThread, queue_node *tail, int priority);
 
 /*
-	deqeue takes a queue_node as input and removes the last queue_node in the queue
-	Returns the last queue_node in the queue
-	Must be called in the form: dequeue(&queue)
+ deqeue takes a queue_node pointer as input and removes the last queue_node in the queue
+ Returns the last queue_node in the queue
+ Must be called in the form: dequeue(&queue)
 */
 queue_node* dequeue(queue_node ** tail);
+/*
+ peek takes a queue_node as in put and returns the top node in the queue without modifying it
+ Must be called in the form: peek(queue)
+*/
+queue_node* peek(queue_node * tail);
 
-/* printQueue prints a queue sequentially*/
+/* 
+ printQueue prints a queue sequentially
+*/
 void printQueue(queue_node *tail);
 
 
