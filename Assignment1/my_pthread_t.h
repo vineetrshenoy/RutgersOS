@@ -20,13 +20,6 @@ typedef struct my_pthread_t {
 
 }my_pthread_t;
 
-
-typedef struct waiting_node{
-	my_pthread_t * thread;
-	int * array;
-	struct waiting_node * next;
-}waiting_node;
-
 typedef struct queue_node {
 	int priority;
 	my_pthread_t* thread;
@@ -34,10 +27,11 @@ typedef struct queue_node {
 
 }queue_node;
 
-typedef struct{} my_pthread_attr_t;
+typedef struct {} my_pthread_attr_t;
 
 typedef struct {
-	int mutex_id;
+	int ticket;
+	int turn;
 } my_pthread_mutex_t;
 
 typedef struct{} my_pthread_mutexattr_t;
@@ -95,9 +89,6 @@ queue_node* peek(queue_node * tail);
  printQueue prints a queue sequentially
 */
 void printQueue(queue_node *tail);
-
-waiting_node * searchWaiting(int id);
-//Looks for a certain node in the waiting queue;
 
 
 #endif
