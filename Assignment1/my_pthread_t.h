@@ -25,7 +25,7 @@ typedef struct queue_node {
 	int priority;
 	my_pthread_t* thread;
 	struct queue_node *next;
-	int * id_array;
+	int waiting_id;
 }queue_node;
 
 typedef struct{} my_pthread_attr_t;
@@ -90,6 +90,8 @@ queue_node* peek(queue_node * tail);
  printQueue prints a queue sequentially
 */
 void printQueue(queue_node *tail);
+queue_node * search_pq();
+int search_wq();
 
 
 
