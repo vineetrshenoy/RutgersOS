@@ -37,12 +37,6 @@ typedef struct {
 
 typedef struct{} my_pthread_mutexattr_t;
 
-typedef struct my_pthread_mutex_node 
-{
-	my_pthread_mutex_t *mutex;
-	my_pthread_t *holder;
-} my_pthread_mutex_node;
-
 int my_pthread_create(my_pthread_t * thread, my_pthread_attr_t * attr, void * (*function) (void*), void* arg);
 // Creates a pthread that executes function. Attributes are ignored.
 
