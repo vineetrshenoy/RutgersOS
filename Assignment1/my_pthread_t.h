@@ -78,7 +78,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
  Returns the new tail of the queue
  Must be called in the form: queue = enqueue(thread, queue, priority)
 */
-queue_node* enqueue(my_pthread_t * newThread, queue_node *tail, int priority);
+queue_node* enqueue(queue_node * newThread, queue_node *tail);
 
 /*
  deqeue takes a queue_node pointer as input and removes the last queue_node in the queue

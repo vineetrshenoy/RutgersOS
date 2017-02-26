@@ -24,6 +24,8 @@ int totalThreads = 0;
 my_pthread_t * current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
+int priority1_size = 0;
+int priority2_size = 0;
 
 void timer_handler (int signum){
 	my_pthread_yield();
@@ -56,7 +58,12 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	
 
 	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_priority_1 = enqueue(thread, queue_priority_1, 1);	//Adds thread to priority queue
+	queue_node *new_node = malloc(sizeof(queue_node));
+	new_node->thread = thread;
+	new_node->priority = 1;
+	queue_priority_1 = enqueue(new_node, queue_priority_1);	//Adds thread to priority queue
+	priority1_size++;
+	
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -126,6 +133,7 @@ void my_pthread_yield(){
 
 	int priority = 0;
 	queue_node* current_thread_node = dequeue(&queue_priority_1); // of ready queue
+	priority1_size--;
 	//active thread is in priority 1
 	if(current_thread_node){
 		my_pthread_t *current_thread = current_thread_node->thread;
@@ -134,7 +142,9 @@ void my_pthread_yield(){
 		if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 			printf("moving thread to priority 2: %i\n", current_thread->thread_id);
 			current_thread->state = WAITING;
-			queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send to lower priority queue
+			current_thread_node->priority = 2;
+			queue_priority_2 = enqueue(current_thread_node, queue_priority_2); //send to lower priority queue
+			priority2_size++;
 		}
 
 		//next thread to be scheduled
@@ -173,7 +183,8 @@ void my_pthread_yield(){
 	else{
 		//There are no threads running in priority 1, so we must check priority 2 and schedule from there as well
 
-		current_thread_node = dequeue(&queue_priority_2);\
+		current_thread_node = dequeue(&queue_priority_2);
+		priority2_size--;
 
 		//active thread is in priority 2
 		if(current_thread_node){
@@ -183,7 +194,9 @@ void my_pthread_yield(){
 
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 				current_thread->state = WAITING;
-				queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send back to lower priority queue
+				current_thread_node->priority = 2;
+				queue_priority_2 = enqueue(current_thread_node, queue_priority_2); //send back to lower priority queue
+				priority2_size++;
 				printf("Thread found being sent back to priority 2: %i\n", current_thread->thread_id);
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
@@ -402,10 +415,8 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 	Returns the new tail of the queue
 	Must be called in the form: queue = enqueue(thread, queue, priority)
 */
-queue_node* enqueue(my_pthread_t * newThread, queue_node *tail, int priority){
-	queue_node *new_node = malloc(sizeof(queue_node));
-	new_node->thread = newThread;
-	new_node->priority = priority;
+queue_node* enqueue(queue_node * new_node, queue_node *tail){
+	
 	if(tail==NULL){
 		new_node->next = NULL;
 		return new_node;
@@ -458,82 +469,6 @@ void printQueue(queue_node *tail){
 }
 
 
-/*
-	This function inputs a new thread at the beginning of the queue
-	INPUT: The thread to add
-	OUTPUT: 1 on succcess, zero on failure
-*/
-/*
-int enqueueFront(my_pthread_t * newThread){
-	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
-	if (queueSize == 0){
-		tail = newThread;
-		tail->next = tail;
-		queueSize++;
-		return 1;
-	}
-	//If one element or greater exists
-	newThread->next = tail->next;	//new thread points to front (become front)
-	tail->next = newThread;			//next of tail points to new thread
-	queueSize++;
-	return 1;
-}
-*/
-
-/*
-	This function inputs a new thread at the rear of the queue
-	INPUT: The thread to add
-	OUTPUT: 1 on succcess, zero on failure
-*/
-/*
-int enqueueRear(my_pthread_t * newThread){
-	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
-	//Same as enqueueFront
-	if (queueSize == 0){
-		tail = newThread;
-		tail->next = tail;
-		queueSize++;
-		return 1;
-	}
-	//If one element or greater exists
-	newThread->next = tail->next;	//the new thread points to the first element
-	tail->next = newThread;			//Old tail points to the new tail
-	tail = tail->next;			//Tail variable moves to new tail
-	queueSize++;
-	return 1;
-}
-*/
-
-/*
-	This function dequeues an item from the front
-	INPUT: The thread to add
-	OUTPUT: 1 on succcess, zero on failure
-*/
-/*
-my_pthread_t * dequeueFront(){
-	//If no elements exist in queue, set tail to new element, and have next point to itself. Increase size
-	//Same as enqueueFront
-	if (queueSize == 0){
-		printf("No elements in queue. Returning NULL\n");
-		return NULL;
-	}
-	else if (queueSize == 0) {
-		queueSize--;
-		return tail;
-	}
-	my_pthread_t * returnThread;
-	returnThread = tail->next;
-	tail->next = returnThread->next;
-	returnThread->next = NULL;
-	queueSize--;
-	return returnThread;
-	
-}
-*/
-
-
-
-
 
 void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
@@ -542,7 +477,8 @@ void * printFunction(void *arg){
 	my_pthread_yield();
 }
 void * counterFunction(void *arg){
-	for (int i = 0; i < 20; i++)
+	int i;
+	for (i = 0; i < 20; i++)
 	{
 		printf("%i\n", i);
 		sleep(1);
