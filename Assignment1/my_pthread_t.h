@@ -20,6 +20,13 @@ typedef struct my_pthread_t {
 
 }my_pthread_t;
 
+
+typedef struct waiting_node{
+	my_pthread_t * thread;
+	int * array;
+	struct waiting_node * next;
+}waiting_node;
+
 typedef struct queue_node {
 	int priority;
 	my_pthread_t* thread;
@@ -88,6 +95,9 @@ queue_node* peek(queue_node * tail);
  printQueue prints a queue sequentially
 */
 void printQueue(queue_node *tail);
+
+waiting_node * searchWaiting(int id);
+//Looks for a certain node in the waiting queue;
 
 
 #endif
