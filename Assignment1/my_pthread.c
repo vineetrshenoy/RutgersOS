@@ -488,7 +488,8 @@ void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
 	sleep(4);
 	printf("We are here now \n");
-	my_pthread_yield();
+	//my_pthread_yield();
+	//call my_pthread_exit() here
 }
 void * counterFunction(void *arg){
 	int i;
@@ -497,7 +498,8 @@ void * counterFunction(void *arg){
 		printf("%i\n", i);
 		sleep(1);
 	}
-	my_pthread_yield();
+	//my_pthread_yield();
+	//call my_pthread_exit() here
 }
 
 
