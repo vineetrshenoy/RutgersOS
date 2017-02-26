@@ -29,6 +29,7 @@ void timer_handler (int signum){
 	my_pthread_yield();
 }
 
+
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
 	
@@ -166,6 +167,9 @@ void my_pthread_yield(){
 			setitimer(ITIMER_REAL, &timer, NULL);
 			swapcontext(temp->context, next_thread->context);
 		}
+
+
+		
 
 	}
 	else{
@@ -534,20 +538,15 @@ my_pthread_t * dequeueFront(){
 
 
 void * printFunction(void *arg){
-	
-	
 	printf("Waiting for signal handler\n");
 	sleep(4);
 	printf("We are here now \n");
-
-	
-	
 }
 
 
 void handler(int sig){
-	//printf("In signal handler\n");
-	//setcontext(&ucp_main);
+	printf("In signal handler\n");
+	setcontext(&ucp_main);
 }
 
 
@@ -556,7 +555,6 @@ int main(){
 
 	my_pthread_t *thread;
 	my_pthread_create(thread, NULL, &printFunction, NULL);
-
 	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
@@ -608,8 +606,8 @@ int main(){
 	//ucontext_t * otherContext = node->context;
 	//makecontext(otherContext, otherFunction,0);
 	setcontext(tail->next->thread->context);	
-	
-*/
+	*/
+
 	printf("Ending main\n");
 	return 0;
 }

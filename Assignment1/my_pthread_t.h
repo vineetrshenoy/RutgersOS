@@ -37,7 +37,8 @@ typedef struct queue_node {
 typedef struct{} my_pthread_attr_t;
 
 typedef struct {
-	int mutex_id;
+	int ticket;
+	int turn;
 } my_pthread_mutex_t;
 
 typedef struct{} my_pthread_mutexattr_t;
