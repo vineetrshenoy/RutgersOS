@@ -24,7 +24,7 @@ int totalThreads = 0;
 my_pthread_t * current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
-queue_node * wait_queue = NULL;
+queue_node * wait_queue = NULL; 
 int priority1_size = 0;
 int priority2_size = 0;
 int wait_size = 0;
@@ -63,8 +63,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	queue_node *new_node = malloc(sizeof(queue_node));
 	new_node->thread = thread;
 	new_node->priority = 1;
-	queue_priority_1 = enqueue(new_node, queue_priority_1);	//Adds thread to priority queue
-	priority1_size++;
+	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
+	
 	
 
 	//If this is the first time calling my_pthread_create()
@@ -134,8 +134,8 @@ void my_pthread_yield(){
 	timer.it_interval.tv_usec = 500000;
 
 	int priority = 0;
-	queue_node* current_thread_node = dequeue(&queue_priority_1); // of ready queue
-	priority1_size--;
+	queue_node* current_thread_node = dequeue(&queue_priority_1, &priority1_size); // of ready queue
+	
 	//active thread is in priority 1
 	if(current_thread_node){
 		my_pthread_t *current_thread = current_thread_node->thread;
@@ -145,8 +145,8 @@ void my_pthread_yield(){
 			printf("moving thread to priority 2: %i\n", current_thread->thread_id);
 			current_thread->state = WAITING;
 			current_thread_node->priority = 2;
-			queue_priority_2 = enqueue(current_thread_node, queue_priority_2); //send to lower priority queue
-			priority2_size++;
+			queue_priority_2 = enqueue(current_thread_node, queue_priority_2, &priority2_size); //send to lower priority queue
+			
 		}
 
 		//next thread to be scheduled
@@ -185,8 +185,8 @@ void my_pthread_yield(){
 	else{
 		//There are no threads running in priority 1, so we must check priority 2 and schedule from there as well
 
-		current_thread_node = dequeue(&queue_priority_2);
-		priority2_size--;
+		current_thread_node = dequeue(&queue_priority_2, &priority2_size);
+		
 
 		//active thread is in priority 2
 		if(current_thread_node){
@@ -197,8 +197,8 @@ void my_pthread_yield(){
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 				current_thread->state = WAITING;
 				current_thread_node->priority = 2;
-				queue_priority_2 = enqueue(current_thread_node, queue_priority_2); //send back to lower priority queue
-				priority2_size++;
+				queue_priority_2 = enqueue(current_thread_node, queue_priority_2, &priority2_size); //send back to lower priority queue
+				
 				printf("Thread found being sent back to priority 2: %i\n", current_thread->thread_id);
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
@@ -410,6 +410,15 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 }
 
+
+queue_node * search_wq(){
+	//
+	if(wait_queue == NULL)
+		return NULL;
+	queue_node * count = wait_queue;
+
+}
+
 /* PRIORITY QUEUE METHODS */
 
 /*
@@ -417,13 +426,15 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 	Returns the new tail of the queue
 	Must be called in the form: queue = enqueue(thread, queue, priority)
 */
-queue_node* enqueue(queue_node * new_node, queue_node *tail){
+queue_node* enqueue(queue_node * new_node, queue_node *tail,int * queue_size){
 	
 	if(tail==NULL){
 		new_node->next = NULL;
+		(*queue_size)++;
 		return new_node;
 	}
 	new_node->next = tail;
+	(*queue_size)++;
 	return new_node;
 }
 /*
@@ -431,7 +442,7 @@ queue_node* enqueue(queue_node * new_node, queue_node *tail){
 	Returns the last queue_node in the queue
 	Must be called in the form: dequeue(&queue)
 */
-queue_node* dequeue(queue_node ** tail){
+queue_node* dequeue(queue_node ** tail, int * queue_size){
 	
 	if((*tail) == NULL)
 		return NULL;
@@ -447,6 +458,7 @@ queue_node* dequeue(queue_node ** tail){
 	}else{
 		(*tail) = NULL;
 	}
+	(*queue_size)--;
 	return iter;
 }
 queue_node* peek(queue_node * tail){

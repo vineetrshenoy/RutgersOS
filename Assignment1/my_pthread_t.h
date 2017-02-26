@@ -72,14 +72,14 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
  Returns the new tail of the queue
  Must be called in the form: queue = enqueue(thread, queue, priority)
 */
-queue_node* enqueue(queue_node * newThread, queue_node *tail);
+queue_node* enqueue(queue_node * newThread, queue_node *tail, int * queue_size);
 
 /*
  deqeue takes a queue_node pointer as input and removes the last queue_node in the queue
  Returns the last queue_node in the queue
  Must be called in the form: dequeue(&queue)
 */
-queue_node* dequeue(queue_node ** tail);
+queue_node* dequeue(queue_node ** tail, int * queue_size);
 /*
  peek takes a queue_node as in put and returns the top node in the queue without modifying it
  Must be called in the form: peek(queue)
@@ -91,8 +91,7 @@ queue_node* peek(queue_node * tail);
 */
 void printQueue(queue_node *tail);
 
-waiting_node * searchWaiting(int id);
-//Looks for a certain node in the waiting queue;
+
 
 
 #endif
