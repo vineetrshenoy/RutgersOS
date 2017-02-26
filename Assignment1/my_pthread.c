@@ -56,7 +56,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	
 
 	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_priority_1 = enqueue(thread, queue_priority_1, 0);	//Adds thread to priority queue
+	queue_priority_1 = enqueue(thread, queue_priority_1, 1);	//Adds thread to priority queue
 
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -125,9 +125,7 @@ void my_pthread_yield(){
 	timer.it_interval.tv_usec = 500000;
 
 	int priority = 0;
-	printQueue(queue_priority_1);
 	queue_node* current_thread_node = dequeue(&queue_priority_1); // of ready queue
-	printQueue(queue_priority_1);
 	//active thread is in priority 1
 	if(current_thread_node){
 		my_pthread_t *current_thread = current_thread_node->thread;
@@ -542,6 +540,13 @@ void * printFunction(void *arg){
 	sleep(4);
 	printf("We are here now \n");
 }
+void * counterFunction(void *arg){
+	for (int i = 0; i < 20; i++)
+	{
+		printf("%i\n", i);
+		sleep(1);
+	}
+}
 
 
 void handler(int sig){
@@ -554,7 +559,10 @@ void handler(int sig){
 int main(){
 
 	my_pthread_t *thread;
-	my_pthread_create(thread, NULL, &printFunction, NULL);
+	my_pthread_t *thread2;
+	my_pthread_create(thread, NULL, &counterFunction, NULL);
+	my_pthread_create(thread2, NULL, &printFunction, NULL);
+
 	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
