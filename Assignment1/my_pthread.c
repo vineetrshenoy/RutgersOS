@@ -8,7 +8,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include "my_pthread_t.h"
-#include <atomic.h>
+#include <asm/bitops.h>
+#include <asm/atomic.h>
 
 #define STACK_SIZE 100000
 
@@ -20,11 +21,10 @@ int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
-int current_thread_id;
+
 my_pthread_t * current;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
-waiting_node * waiting_head = NULL; //This is a normal linked list
 
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
@@ -147,7 +147,7 @@ void my_pthread_yield(){
 
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 				current_thread->state = WAITING;
-				queue_priority_2 = enqueue(current_thread, queue_priority_2, 2); //send back to lower priority queue
+				queue_priority_2 = enqueue(current_thread, queue_priority_1ority_2, 2); //send back to lower priority queue
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
 			priority = 2;
@@ -216,28 +216,6 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	2. Call yield()
 	
 	*/
-
-
-	waiting_node * node = searchWaiting(current->thread_id); //If there is a thread alredady in waiting queue
-	//if no threads in the waiting queue
-	if (node == NULL){
-		node = (waiting_node*)malloc(sizeof(waiting_node)); //malloc space for the node
-		node->array = (int*) calloc(10, sizeof(int));	//allocate space for an array of ids that this thread is waiting for
-		node->array[0] = thread.thread_id;
-		node->thread = current;
-		node->next = waiting_head;
-		waiting_head = node;
-	}
-	else{	//find nonzero entry
-		int i = 0; 
-		while (node->array[i] != 0)
-			i++;
-		node->array[i] = thread.thread_id;
-		node->thread = current;
-	}
-		
-
-
 /*
 	// not sure how to do this but it should be something like this:
 	// get current thread (calling thread)
@@ -286,15 +264,15 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	int i;
 	int *m_id = (int*) mutex->mutex_id;
 
-	if (atomic_bit_test_set(m_id, 31) == 0) {
+	if (test_and_set_bit(31, (void) m_id) == 0) {
 		return 0;
 	}
 
-	atomic_increment(m_id);
+	atomic_inc((atomic_t) m_id);
 
 	while (1) {
-		if (atomic_bit_test_set(m_id, 31) == 0) {
-			atomic_decrement(m_id);
+		if (test_and_set_bit(31, (void) m_id) == 0) {
+			atomic_dec((atomic_t) m_id);
 			return 0;
 		}
 
@@ -312,7 +290,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// return 0, -1 for failure
 
  	int *m_id = (int*) mutex->mutex_id;
- 	if (atomic_add_zero(m_id, 0x80000000))
+ 	if (atomic_add(0x80000000, (atomic_t) m_id))
  		return 0;
  	futex_wake(m_id);
 
@@ -388,24 +366,6 @@ void printQueue(queue_node *tail){
 	}
 }
 
-/*
-	This function finds the node for a given id, if any
-
-*/
-waiting_node * searchWaiting(int id){
-	//if no node on the list, return null
-	if(waiting_head == NULL)
-		return NULL;
-	//iterate over nodes, and if id is found return 
-	waiting_node * counter = waiting_head;
-	while(counter != NULL){
-		if(counter->thread->thread_id == id)
-			return counter;
-		
-	}
-	//if not on the list, return null
-	return NULL;
-}
 
 /*
 	This function inputs a new thread at the beginning of the queue
