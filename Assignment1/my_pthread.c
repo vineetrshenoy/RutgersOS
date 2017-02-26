@@ -267,31 +267,26 @@ void my_pthread_exit(void * value_ptr){
 
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
+	//Check if it is in the wait_queue. if not, return error
+	if (search_wq() != 0){
+		printf("Unable to join\n");
+		return -1;
+	}
+	//get the node from the priority queu
+	queue_node * node = search_pq();
+	if (node == NULL){
+		printf("Unable to join\n");
+		return -1;
+	}
 
-	/*
-	1. Calling thread will not run until called thread is done running
-	2. Call yield()
-	
-	*/
-/*
-	// not sure how to do this but it should be something like this:
-	// get current thread (calling thread)
-	my_pthread_t* current_thread = dequeueFront();
-	if (thread->state != COMPLETED) {
-		current_thread->state = WAITING;
-		enqueueRear(current_thread); // to waiting queue
-		enqueueFront(current_thread); // to ready queue so yield can take it off
-	}
-	// keep running scheduler until target thread has been completed
-	while (thread->state != COMPLETED) {
-		my_pthread_yield();
-	}
-	current_thread->state = ACTIVE;
-	enqueueFront(current_thread); // to ready queue
-	if (value_ptr != NULL) {
-		return thread->return_value; // return target thread value
-	}
-*/
+	//set the id on which this thread is waiting and add to queue
+	node->waiting_id = thread.thread_id;
+	wait_queue = enqueue(node, wait_queue, &wait_size);
+
+
+
+
+
 	return 0;
 
 }
@@ -410,12 +405,55 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 }
 
+queue_node * search_pq(){
+	int i;
+	queue_node * node;
+	if (queue_priority_1 != NULL){
+		int queueSizeOne = priority1_size;
+		
+		
+		for (i = 0; i < queueSizeOne; i++){
+			node = dequeue(&queue_priority_1, &priority1_size);
+			if (node->thread->thread_id == current->thread_id)
+				return node;
+			queue_priority_1 = enqueue(node, queue_priority_1, &priority1_size);
+		}
+	}
+	else if (queue_priority_2 != NULL){
+		int queueSizeTwo = priority2_size;
+		for (i = 0; i < queueSizeTwo; i++){
+			node = dequeue(&queue_priority_2, &priority2_size);
+			if (node->thread->thread_id == current->thread_id)
+				return node;
+			queue_priority_2 = enqueue(node, queue_priority_2, &priority2_size);
+		}
+			
+	}
 
-queue_node * search_wq(){
-	//
+
+	return NULL;
+
+}
+
+
+
+int search_wq(){
+	//if the waitqueue has no objects, return null;
 	if(wait_queue == NULL)
-		return NULL;
-	queue_node * count = wait_queue;
+		return 0;
+	queue_node * node; 
+	int queueSize = wait_size;	//number of nodes in the wait queue
+	int i;	//counter
+	for (i = 0; i < queueSize; i++){
+		node = dequeue(&wait_queue, &wait_size);	//dequeue a node
+		//if the current thread is in the waitqueue
+		if (node->thread->thread_id == current->thread_id){
+			wait_queue = enqueue(node, wait_queue, &wait_size);
+			return 1;
+		}
+		wait_queue = enqueue(node, wait_queue, &wait_size);
+	}
+	return 0;
 
 }
 
@@ -488,8 +526,7 @@ void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
 	sleep(4);
 	printf("We are here now \n");
-	//my_pthread_yield();
-	//call my_pthread_exit() here
+	my_pthread_yield();
 }
 void * counterFunction(void *arg){
 	int i;
@@ -498,8 +535,7 @@ void * counterFunction(void *arg){
 		printf("%i\n", i);
 		sleep(1);
 	}
-	//my_pthread_yield();
-	//call my_pthread_exit() here
+	my_pthread_yield();
 }
 
 
@@ -547,12 +583,9 @@ int main(){
 	//otherFunction = &printFunction;
 /*
 	my_pthread_t * thread;
-
 	my_pthread_create(thread, NULL, &printFunction, NULL);	
-
 	printf("The tail node is %d\n", tail->thread->thread_id);
 	printf("The next node is %d\n", tail->next->thread->thread_id);
-
 	my_pthread_mutex_t lock;
 	if (pthread_mutex_init(&lock, NULL) !=0)
     {
@@ -563,9 +596,7 @@ int main(){
     printf("Locked.\n");
     my_pthread_mutex_unlock(&lock);
     printf("Unlocked.\n");
-
 	//printf("Thread id is %d\n", node->thread_id);
-
 	//ucontext_t * otherContext = node->context;
 	//makecontext(otherContext, otherFunction,0);
 	setcontext(tail->next->thread->context);	
