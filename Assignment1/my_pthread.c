@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include "my_pthread_t.h"
+#include <atomic.h>
 
 #define STACK_SIZE 100000
 
@@ -92,6 +93,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	// add to queue
 	return 0;
 	*/
+
+	return 0;
 
 }
 
@@ -267,6 +270,10 @@ int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr
 	// new mutex node added to mutex queue
 	// return 0 for success, -1 for failure
 
+	mutex = (my_pthread_mutex_t *) malloc(sizeof(my_pthread_mutex_t));
+	mutex->mutex_id = 0;
+	return 0;
+
 }
 
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
@@ -275,6 +282,27 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// mutex node needs "holder" characteristic
 	// holder = currentthread
 	// return 0, -1 for failure
+
+	int i;
+	int *m_id = (int*) mutex->mutex_id;
+
+	if (atomic_bit_test_set(m_id, 31) == 0) {
+		return 0;
+	}
+
+	atomic_increment(m_id);
+
+	while (1) {
+		if (atomic_bit_test_set(m_id, 31) == 0) {
+			atomic_decrement(m_id);
+			return 0;
+		}
+
+		i = *m_id;
+		if (i >= 0)
+			continue;
+		futex_wait(m_id, i);
+	}
 }
 
  int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
@@ -282,6 +310,11 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// get front mutex node from queue
 	// if current thread == holder of node
 	// return 0, -1 for failure
+
+ 	int *m_id = (int*) mutex->mutex_id;
+ 	if (atomic_add_zero(m_id, 0x80000000))
+ 		return 0;
+ 	futex_wake(m_id);
 
  }
 
@@ -505,6 +538,17 @@ int main(){
 
 	printf("The tail node is %d\n", tail->thread->thread_id);
 	printf("The next node is %d\n", tail->next->thread->thread_id);
+
+	my_pthread_mutex_t lock;
+	if (pthread_mutex_init(&lock, NULL) !=0)
+    {
+        printf("mutex init failed\n");
+        exit(1);
+    }
+    my_pthread_mutex_lock(&lock);
+    printf("Locked.\n");
+    my_pthread_mutex_unlock(&lock);
+    printf("Unlocked.\n");
 
 	//printf("Thread id is %d\n", node->thread_id);
 
