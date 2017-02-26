@@ -7,8 +7,9 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <bits/atomic.h>
 #include "my_pthread_t.h"
-#include <atomic.h>
+
 
 #define STACK_SIZE 100000
 
