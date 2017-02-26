@@ -240,7 +240,11 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 }
 
-
+int FetchAndAdd(int *ptr) {
+	int old = *ptr;
+	*ptr = old + 1;
+	return old;
+}
 
 
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
@@ -249,8 +253,8 @@ int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr
 	// new mutex node added to mutex queue
 	// return 0 for success, -1 for failure
 
-	mutex = (my_pthread_mutex_t *) malloc(sizeof(my_pthread_mutex_t));
-	*mutex = 0;
+	mutex->ticket = 0;
+	mutex->trun = 0;
 	return 0;
 
 }
@@ -261,7 +265,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// mutex node needs "holder" characteristic
 	// holder = currentthread
 	// return 0, -1 for failure
-
+/*
 	int i, c;
 
 	// Spin and try to take lock
@@ -280,7 +284,11 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 		sys_futex(mutex, FUTEX_WAIT_PRIVATE, 2, NULL, NULL, 0);
 		c = xchg_32(mutex, 2);
 	}
+*/
 
+	int myturn = FetchAndAdd(&mutex->ticket);
+	while (mutex->turn != myturn)
+		; //spin
 	return 0;
 	/*
 	int *m_id = (int*) mutex->mutex_id;
@@ -318,7 +326,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
  	futex_wake(m_id);
  	*/
 
- 	int i;
+ 	/*int i;
 
  	// unlock, and if not contended then exit
  	if (*mutex == 2) {
@@ -336,7 +344,9 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
  	}
 
  	// we need to wake someone up
- 	sys_futex(mutex, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
+ 	sys_futex(mutex, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);*/
+
+ 	mutex->turn = mutex->turn + 1;
 
  	return 0;
 
