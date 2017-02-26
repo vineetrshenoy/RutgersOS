@@ -24,8 +24,10 @@ int totalThreads = 0;
 my_pthread_t * current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
+queue_node * wait_queue = NULL;
 int priority1_size = 0;
 int priority2_size = 0;
+int wait_size = 0;
 
 void timer_handler (int signum){
 	my_pthread_yield();

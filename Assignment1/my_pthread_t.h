@@ -21,17 +21,11 @@ typedef struct my_pthread_t {
 }my_pthread_t;
 
 
-typedef struct waiting_node{
-	my_pthread_t * thread;
-	int * array;
-	struct waiting_node * next;
-}waiting_node;
-
 typedef struct queue_node {
 	int priority;
 	my_pthread_t* thread;
 	struct queue_node *next;
-
+	int * id_array;
 }queue_node;
 
 typedef struct{} my_pthread_attr_t;
