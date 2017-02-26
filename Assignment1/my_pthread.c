@@ -143,7 +143,7 @@ void my_pthread_yield(){
 
 		if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
 			printf("moving thread to priority 2: %i\n", current_thread->thread_id);
-			current_thread->state = WAITING;
+			current_thread->state = ACTIVE;
 			current_thread_node->priority = 2;
 			queue_priority_2 = enqueue(current_thread_node, queue_priority_2, &priority2_size); //send to lower priority queue
 			
@@ -177,10 +177,6 @@ void my_pthread_yield(){
 			setitimer(ITIMER_REAL, &timer, NULL);
 			swapcontext(temp->context, next_thread->context);
 		}
-
-
-		
-
 	}
 	else{
 		//There are no threads running in priority 1, so we must check priority 2 and schedule from there as well
@@ -193,9 +189,8 @@ void my_pthread_yield(){
 			my_pthread_t *current_thread = current_thread_node->thread;
 
 			printf("3. Thread found in priority 2: %i\n", current_thread->thread_id);
-
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
-				current_thread->state = WAITING;
+				current_thread->state = ACTIVE;
 				current_thread_node->priority = 2;
 				queue_priority_2 = enqueue(current_thread_node, queue_priority_2, &priority2_size); //send back to lower priority queue
 				
@@ -245,23 +240,29 @@ void my_pthread_exit(void * value_ptr){
 	4. my_pthread_yield
  
 	*/
+	my_pthread_t* current_thread = current;
+	queue_node *queue_priority_1_head = peek(queue_priority_1);
+	queue_node *queue_priority_2_head = peek(queue_priority_2);
 
+	if(queue_priority_1_head){
+		my_pthread_t *queue_priority_1_head_thread = queue_priority_1_head->thread;
+		queue_node * removed_node = NULL;
+		if(current_thread->thread_id == queue_priority_1_head_thread->thread_id){
+			removed_node = dequeue(&queue_priority_1, &priority1_size);
+		}
+		free(removed_node);
+	}
+	else{
+		queue_node * removed_node = NULL;
+		my_pthread_t *queue_priority_2_head_thread = queue_priority_2_head->thread;
+		removed_node = dequeue(&queue_priority_2, &priority2_size);
+		free(removed_node);
+	}
 
-
-
-
-/*
-	// get completed thread and set return value and state
-	my_pthread_t* current_thread = dequeueFront();
-	current_thread->return_value = value_ptr;
-	current_thread->state = COMPLETED;
-	// put it back on ready queue so yield can take it off
-	enqueueFront(current_thread);
+	current = NULL;
 	my_pthread_yield();
-*/
+	
 	return;
-
-
 }
 
 
@@ -526,7 +527,7 @@ void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
 	sleep(4);
 	printf("We are here now \n");
-	my_pthread_yield();
+	my_pthread_exit(NULL);
 }
 void * counterFunction(void *arg){
 	int i;
@@ -535,7 +536,7 @@ void * counterFunction(void *arg){
 		printf("%i\n", i);
 		sleep(1);
 	}
-	my_pthread_yield();
+	my_pthread_exit(NULL);
 }
 
 
