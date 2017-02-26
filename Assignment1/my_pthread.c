@@ -7,10 +7,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <bits/atomic.h>
 #include "my_pthread_t.h"
-#include <asm/bitops.h>
-#include <asm/atomic.h>
 
 #define STACK_SIZE 100000
 
@@ -243,14 +240,20 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 
 
+int FetchAndAdd(int *ptr) {
+	int old = *ptr;
+	*ptr = old + 1;
+	return old;
+}
+
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
 
 	// mutex queue is needed
 	// new mutex node added to mutex queue
 	// return 0 for success, -1 for failure
 
-	mutex = (my_pthread_mutex_t *) malloc(sizeof(my_pthread_mutex_t));
-	mutex->mutex_id = 0;
+	mutex->ticket = 0;
+	mutex->turn = 0;
 	return 0;
 
 }
@@ -261,8 +264,32 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// mutex node needs "holder" characteristic
 	// holder = currentthread
 	// return 0, -1 for failure
+/*
+	int i, c;
 
-	int i;
+	// Spin and try to take lock
+	for (i = 0; i < 100; i++) {
+		c = cmpxchg(mutex, 0, 1);
+		if (!c) return 0;
+
+		cpu_relax();
+	}
+
+	// The lock is now contended
+	if (c == 1) c = xchg_32(mutex, 2);
+
+	while(c) {
+		// wait in the kernel
+		sys_futex(mutex, FUTEX_WAIT_PRIVATE, 2, NULL, NULL, 0);
+		c = xchg_32(mutex, 2);
+	}
+*/
+
+	int myturn = FetchAndAdd(&mutex->ticket);
+	while (mutex->turn != myturn)
+		//my_pthread_yield(); //spin
+	return 0;
+	/*
 	int *m_id = (int*) mutex->mutex_id;
 
 	if (test_and_set_bit(31, (void) m_id) == 0) {
@@ -282,6 +309,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 			continue;
 		futex_wait(m_id, i);
 	}
+	*/
 }
 
  int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
@@ -290,10 +318,36 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	// if current thread == holder of node
 	// return 0, -1 for failure
 
+ 	/*
  	int *m_id = (int*) mutex->mutex_id;
  	if (atomic_add(0x80000000, (atomic_t) m_id))
  		return 0;
  	futex_wake(m_id);
+ 	*/
+
+ 	/*int i;
+
+ 	// unlock, and if not contended then exit
+ 	if (*mutex == 2) {
+ 		*mutex = 0;
+ 	}
+ 	else if (xchg_32(mutex, 0) == 1) return 0;
+
+ 	// spin and hope someone takes the lock
+ 	for (i = 0; i < 200; i++) {
+ 		if (*mutex) {
+ 			// need to set to state 2 beause there may be waiters
+ 			if (cmpxchg(mutex, 1, 2)) return 0;
+ 		}
+ 		cpu_relax();
+ 	}
+
+ 	// we need to wake someone up
+ 	sys_futex(mutex, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);*/
+
+ 	mutex->turn = mutex->turn + 1;
+
+ 	return 0;
 
  }
 
@@ -302,6 +356,9 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 	// my_pthread_mutex_unlock(*mutex) to make sure
 	// deallocate stuff
 	// return 0, -1 for failure
+	
+	free(mutex);
+	return 0;
 
 }
 
