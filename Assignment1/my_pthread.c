@@ -285,6 +285,25 @@ void my_pthread_exit(void * value_ptr){
 		free(removed_node);
 	}
 
+
+
+	
+	queue_node * iter; 
+	int queueSize = wait_size;	//number of nodes in the wait queue
+	int i;	//counter
+	for (i = 0; i < queueSize; i++){
+		iter = dequeue(&wait_queue, &wait_size);	//dequeue a iter
+		//if the current thread is in the waitqueue
+		if (iter->thread->thread_id == removed_node_id){
+			queue_priority_1 = enqueue(iter, queue_priority_1, &priority1_size);
+			
+		}
+		
+		else{
+		wait_queue = enqueue(iter, wait_queue, &wait_size);
+		}
+	}
+	/*
 	queue_node *iter = wait_queue;
 	queue_node *prev = NULL;
 	while(iter){
@@ -307,12 +326,13 @@ void my_pthread_exit(void * value_ptr){
 				prev->next = iter->next;
 			}
 			iter = iter->next;
-		}else{
+		}
+		else{
 			prev = iter;
 			iter = iter->next;
 		}
 	}
-
+	*/
 	// some pseudocode stuff for incorporating join:
 	// if a node in the waiting queue has a matching waiting id {
 	//		if node->join_value != NULL {
