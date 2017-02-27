@@ -26,6 +26,7 @@ typedef struct queue_node {
 	my_pthread_t* thread;
 	struct queue_node *next;
 	int waiting_id;
+	void **join_value;
 }queue_node;
 
 typedef struct{} my_pthread_attr_t;
