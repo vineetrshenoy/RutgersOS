@@ -79,33 +79,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 	}
 
-	//my_pthread_yield();
-
-	// something like this should go here to add the main function to the top of the queue:
-	//if queuesize == 0:
-	// getcontext(main)
-	// add this context to a thread instance
-	// increment totalThreads for thread_id
-	//add to queue
-
-
-
-	/*
-	----------NAORIN'S CODE --------------------
-	// add context to thread
-	ucontext_t* b = (ucontext_t*) malloc(sizeof(ucontext_t*));
-	thread->context = b;
-	getcontext(thread->context);
-	thread->context->uc_stack.ss_sp = malloc(STACK_SIZE);
-	thread->context->uc_stack.ss_size = STACK_SIZE;
-	thread->state = ACTIVE;
-	thread->thread_id = totalThreads++;
-	// add function to context
-	makecontext(thread->context, (void*) function, arg);
-	// add to queue
-	return 0;
-	*/
-
+	
 	return 0;
 
 }
@@ -117,8 +91,7 @@ void my_pthread_yield(){
 		This contains schedule code
 	*/
 
-	// check if current thread is done doing stuff
-	// if not, add it to a lower priority queue
+	
 
 		// setitimer stuff
 	struct sigaction sa;
@@ -303,44 +276,7 @@ void my_pthread_exit(void * value_ptr){
 		wait_queue = enqueue(iter, wait_queue, &wait_size);
 		}
 	}
-	/*
-	queue_node *iter = wait_queue;
-	queue_node *prev = NULL;
-	while(iter){
-		if(iter->waiting_id == removed_node_id){
-			if(iter->join_value!=NULL){
-				//void ** value_address = iter->join_value;
-				//**value_address = *value_ptr;
-			}
-
-			queue_node *new_node = malloc(sizeof(queue_node));
-			new_node->thread = iter->thread;
-			new_node->priority = 1;
-			new_node->join_value = NULL;
-			queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);
-
-			if(prev == NULL){
-				wait_queue = iter->next;
-			}
-			else{
-				prev->next = iter->next;
-			}
-			iter = iter->next;
-		}
-		else{
-			prev = iter;
-			iter = iter->next;
-		}
-	}
-	*/
-	// some pseudocode stuff for incorporating join:
-	// if a node in the waiting queue has a matching waiting id {
-	//		if node->join_value != NULL {
-	//			void **value_address = node->join_value
-	//			**value_address = *value_ptr
-	//		}
-	//		add node back to priority and remove from waiting queue
-	//	}
+	
 
 	current = NULL;
 	my_pthread_yield();
@@ -401,79 +337,19 @@ int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr
 
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 
-	// dequeFront() of mutex queue
-	// mutex node needs "holder" characteristic
-	// holder = currentthread
-	// return 0, -1 for failure
-/*
-	int i, c;
-	// Spin and try to take lock
-	for (i = 0; i < 100; i++) {
-		c = cmpxchg(mutex, 0, 1);
-		if (!c) return 0;
-		cpu_relax();
-	}
-	// The lock is now contended
-	if (c == 1) c = xchg_32(mutex, 2);
-	while(c) {
-		// wait in the kernel
-		sys_futex(mutex, FUTEX_WAIT_PRIVATE, 2, NULL, NULL, 0);
-		c = xchg_32(mutex, 2);
-	}
-*/
+	
+
 
 	int myturn = FetchAndAdd(&mutex->ticket);
 	while (mutex->turn != myturn)
 		//my_pthread_yield(); //spin
 	return 0;
-	/*
-	int *m_id = (int*) mutex->mutex_id;
-	if (test_and_set_bit(31, (void) m_id) == 0) {
-		return 0;
-	}
-	atomic_inc((atomic_t) m_id);
-	while (1) {
-		if (test_and_set_bit(31, (void) m_id) == 0) {
-			atomic_dec((atomic_t) m_id);
-			return 0;
-		}
-		i = *m_id;
-		if (i >= 0)
-			continue;
-		futex_wait(m_id, i);
-	}
-	*/
+	
 }
 
  int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 
-	// get front mutex node from queue
-	// if current thread == holder of node
-	// return 0, -1 for failure
-
- 	/*
- 	int *m_id = (int*) mutex->mutex_id;
- 	if (atomic_add(0x80000000, (atomic_t) m_id))
- 		return 0;
- 	futex_wake(m_id);
- 	*/
-
- 	/*int i;
- 	// unlock, and if not contended then exit
- 	if (*mutex == 2) {
- 		*mutex = 0;
- 	}
- 	else if (xchg_32(mutex, 0) == 1) return 0;
- 	// spin and hope someone takes the lock
- 	for (i = 0; i < 200; i++) {
- 		if (*mutex) {
- 			// need to set to state 2 beause there may be waiters
- 			if (cmpxchg(mutex, 1, 2)) return 0;
- 		}
- 		cpu_relax();
- 	}
- 	// we need to wake someone up
- 	sys_futex(mutex, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);*/
+	
 
  	mutex->turn = mutex->turn + 1;
 
@@ -483,9 +359,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
-	// my_pthread_mutex_unlock(*mutex) to make sure
-	// deallocate stuff
-	// return 0, -1 for failure
+	
 	
 	free(mutex);
 	return 0;
@@ -658,36 +532,7 @@ int main(){
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 */
 
-	//if(temp->thread->string){
-	//	printf("%s\n", temp->thread->string);
-	//}
 
-
-	//void * (*functionPointer)(void *);
-	//functionPointer = &printFunction;
-
-	//void(*otherFunction)();
-	//otherFunction = &printFunction;
-/*
-	my_pthread_t * thread;
-	my_pthread_create(thread, NULL, &printFunction, NULL);	
-	printf("The tail node is %d\n", tail->thread->thread_id);
-	printf("The next node is %d\n", tail->next->thread->thread_id);
-	my_pthread_mutex_t lock;
-	if (pthread_mutex_init(&lock, NULL) !=0)
-    {
-        printf("mutex init failed\n");
-        exit(1);
-    }
-    my_pthread_mutex_lock(&lock);
-    printf("Locked.\n");
-    my_pthread_mutex_unlock(&lock);
-    printf("Unlocked.\n");
-	//printf("Thread id is %d\n", node->thread_id);
-	//ucontext_t * otherContext = node->context;
-	//makecontext(otherContext, otherFunction,0);
-	setcontext(tail->next->thread->context);	
-	*/
 
 	printf("Ending main\n");
 	return 0;
