@@ -57,7 +57,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	thread->thread_id = threadIDS; //Gives the thread an ID
 	threadIDS++;
 	thread->state = ACTIVE;	//Sets thread to active stat
-	
+	thread->join_value = NULL;
 
 	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
 	queue_node *new_node = malloc(sizeof(queue_node));
@@ -259,6 +259,15 @@ void my_pthread_exit(void * value_ptr){
 		free(removed_node);
 	}
 
+	// some pseudocode stuff for incorporating join:
+	// if a node in the waiting queue has a matching waiting id {
+	//		if node->join_value != NULL {
+	//			void **value_address = node->join_value
+	//			**value_address = *value_ptr
+	//		}
+	//		add node back to priority and remove from waiting queue
+	//	}
+
 	current = NULL;
 	my_pthread_yield();
 	
@@ -273,7 +282,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		printf("Unable to join\n");
 		return -1;
 	}
-	//get the node from the priority queu
+	//get the node from the priority queue
 	queue_node * node = search_pq();
 	if (node == NULL){
 		printf("Unable to join\n");
@@ -282,11 +291,14 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 	//set the id on which this thread is waiting and add to queue
 	node->waiting_id = thread.thread_id;
+
+	if (value_ptr != NULL) {
+		node->join_value = value_ptr;
+	}
+
 	wait_queue = enqueue(node, wait_queue, &wait_size);
 
-
-
-
+	my_pthread_yield();
 
 	return 0;
 
