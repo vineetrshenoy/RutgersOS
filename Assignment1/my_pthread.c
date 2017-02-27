@@ -288,7 +288,7 @@ void my_pthread_exit(void * value_ptr){
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
 	//Check if it is in the wait_queue. if not, return error
-	if (search_wq() != 0){
+	if (search_wq() == 0){
 		printf("Unable to join\n");
 		return -1;
 	}
@@ -513,6 +513,7 @@ int main(){
 	my_pthread_t *thread2;
 	my_pthread_create(thread, NULL, &counterFunction, NULL);
 	my_pthread_create(thread2, NULL, &printFunction, NULL);
+	my_pthread_join(*thread2, NULL);
 	my_pthread_yield();
 
 	/*
