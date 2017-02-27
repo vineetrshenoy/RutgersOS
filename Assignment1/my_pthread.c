@@ -57,12 +57,12 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	thread->thread_id = threadIDS; //Gives the thread an ID
 	threadIDS++;
 	thread->state = ACTIVE;	//Sets thread to active stat
-	thread->join_value = NULL;
 
 	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
 	queue_node *new_node = malloc(sizeof(queue_node));
 	new_node->thread = thread;
 	new_node->priority = 1;
+	new_node->join_value = NULL;
 	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
 	
 	
@@ -128,11 +128,6 @@ void my_pthread_yield(){
 	sa.sa_handler = &timer_handler;
 	sigaction (SIGALRM, &sa, NULL);
 
-	timer.it_value.tv_sec = 0;
-	timer.it_value.tv_usec = 500000;
-	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 500000;
-
 	int priority = 0;
 	queue_node* current_thread_node = dequeue(&queue_priority_1, &priority1_size); // of ready queue
 	
@@ -167,12 +162,23 @@ void my_pthread_yield(){
 			/* Start a virtual timer. It counts down whenever this process is
 	  		executing. */
 	  		current = next_thread;
+
+	  		timer.it_value.tv_sec = 0;
+			timer.it_value.tv_usec = 500000*priority;
+			timer.it_interval.tv_sec = 0;
+			timer.it_interval.tv_usec = 500000*priority;
+
 			setitimer (ITIMER_REAL, &timer, NULL);
 
 			setcontext(next_thread->context);
 		}else{
 			my_pthread_t *temp = current;
 			current = next_thread;
+
+			timer.it_value.tv_sec = 0;
+			timer.it_value.tv_usec = 500000*priority;
+			timer.it_interval.tv_sec = 0;
+			timer.it_interval.tv_usec = 500000*priority;
 
 			setitimer(ITIMER_REAL, &timer, NULL);
 			swapcontext(temp->context, next_thread->context);
@@ -206,12 +212,23 @@ void my_pthread_yield(){
 				/* Start a virtual timer. It counts down whenever this process is
 		  		executing. */
 		  		current = next_thread;
+
+		  		timer.it_value.tv_sec = 0;
+				timer.it_value.tv_usec = 500000*priority;
+				timer.it_interval.tv_sec = 0;
+				timer.it_interval.tv_usec = 500000*priority;
+
 				setitimer (ITIMER_REAL, &timer, NULL);
 
 				setcontext(next_thread->context);
 			}else{
 				my_pthread_t *temp = current;
 				current = next_thread;
+
+				timer.it_value.tv_sec = 0;
+				timer.it_value.tv_usec = 500000*priority;
+				timer.it_interval.tv_sec = 0;
+				timer.it_interval.tv_usec = 500000*priority;
 
 				setitimer(ITIMER_REAL, &timer, NULL);
 				swapcontext(temp->context, next_thread->context);
@@ -244,19 +261,56 @@ void my_pthread_exit(void * value_ptr){
 	queue_node *queue_priority_1_head = peek(queue_priority_1);
 	queue_node *queue_priority_2_head = peek(queue_priority_2);
 
+	int check = 1;
+
+	int removed_node_id = 0;
+
 	if(queue_priority_1_head){
 		my_pthread_t *queue_priority_1_head_thread = queue_priority_1_head->thread;
 		queue_node * removed_node = NULL;
 		if(current_thread->thread_id == queue_priority_1_head_thread->thread_id){
 			removed_node = dequeue(&queue_priority_1, &priority1_size);
+			removed_node_id = removed_node->thread->thread_id;
+			free(removed_node->thread);
+			free(removed_node);
+			check = 0;
 		}
-		free(removed_node);
 	}
-	else{
+	if(check==1){
 		queue_node * removed_node = NULL;
 		my_pthread_t *queue_priority_2_head_thread = queue_priority_2_head->thread;
 		removed_node = dequeue(&queue_priority_2, &priority2_size);
+		removed_node_id = removed_node->thread->thread_id;
+		free(removed_node->thread);
 		free(removed_node);
+	}
+
+	queue_node *iter = wait_queue;
+	queue_node *prev = NULL;
+	while(iter){
+		if(iter->waiting_id == removed_node_id){
+			if(iter->join_value!=NULL){
+				//void ** value_address = iter->join_value;
+				//**value_address = *value_ptr;
+			}
+
+			queue_node *new_node = malloc(sizeof(queue_node));
+			new_node->thread = iter->thread;
+			new_node->priority = 1;
+			new_node->join_value = NULL;
+			queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);
+
+			if(prev == NULL){
+				wait_queue = iter->next;
+			}
+			else{
+				prev->next = iter->next;
+			}
+			iter = iter->next;
+		}else{
+			prev = iter;
+			iter = iter->next;
+		}
 	}
 
 	// some pseudocode stuff for incorporating join:
