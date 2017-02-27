@@ -36,7 +36,7 @@ void timer_handler (int signum){
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
-	
+
 
 	// ------VINEET'S CODE ----
 	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
@@ -65,9 +65,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	new_node->join_value = NULL;
 	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
 	
-	
-
-	//If this is the first time calling my_pthread_create()
+			//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
 		isInitialized = 1;	//change isInitialized flag
 		my_pthread_t * mainThread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //malloc space for the my_pthread struct
@@ -75,9 +73,14 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
-		//queue_priority_1 = enqueue(mainThread, queue_priority_1, &priority1_size);	//Adds main the the priority queue
-
+		queue_node *main_node = malloc(sizeof(queue_node));
+		main_node->thread = mainThread;
+		main_node->priority = 1;
+		main_node->join_value = NULL;
+		//queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
 	}
+
+
 
 	//my_pthread_yield()
 	return 0;
