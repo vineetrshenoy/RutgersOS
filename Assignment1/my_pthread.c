@@ -74,6 +74,11 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
 		current = mainThread;
+		queue_node *main_node = malloc(sizeof(queue_node));
+		main_node->thread = mainThread;
+		main_node->priority = 1;
+		main_node->join_value = NULL;
+		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
 	}
 
 
@@ -291,7 +296,7 @@ void my_pthread_exit(void * value_ptr){
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
 	//Check if it is in the wait_queue. if not, return error
-	if (search_wq() == 0){
+	if (search_wq() == 1){
 		printf("Unable to join\n");
 		return -1;
 	}
