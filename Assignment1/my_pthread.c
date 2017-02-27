@@ -73,11 +73,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
-		queue_node *main_node = malloc(sizeof(queue_node));
-		main_node->thread = mainThread;
-		main_node->priority = 1;
-		main_node->join_value = NULL;
-		//queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+		current = mainThread;
 	}
 
 
