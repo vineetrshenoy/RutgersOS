@@ -32,7 +32,28 @@ int wait_size = 0;
 void timer_handler (int signum){
 	my_pthread_yield();
 }
+void maintenanceCycle (int signum){
+	printf("maintenanceCycle\n");
+	struct sigaction sa;
 
+	queue_node *temp = NULL;
+	temp = queue_priority_1;
+	queue_priority_1 = queue_priority_2;
+	queue_priority_2 = temp;
+
+	/* Install timer_handler as the signal handler for SIGVTALRM. */
+	memset (&sa, 0, sizeof (sa));
+	sa.sa_handler = &maintenanceCycle;
+	sigaction (SIGALRM, &sa, NULL);
+	struct itimerval maintenance_timer;
+
+	maintenance_timer.it_value.tv_sec = 0;
+	maintenance_timer.it_value.tv_usec = 30000000;
+	maintenance_timer.it_interval.tv_sec = 0;
+	maintenance_timer.it_interval.tv_usec = 30000000;
+
+	setitimer (ITIMER_REAL, &maintenance_timer, NULL);
+}
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
@@ -79,6 +100,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		main_node->priority = 1;
 		main_node->join_value = NULL;
 		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+
+		maintenanceCycle(0);
 	}
 
 
@@ -488,8 +511,6 @@ void printQueue(queue_node *tail){
 		iter = iter->next;
 	}
 }
-
-
 
 void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
