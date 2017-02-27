@@ -268,6 +268,10 @@ void my_pthread_exit(void * value_ptr){
 		iter = dequeue(&wait_queue, &wait_size);	//dequeue a iter
 		//if the current thread is in the waitqueue
 		if (iter->thread->thread_id == removed_node_id){
+			if(iter->join_value != NULL) {
+				void **join_value_temp = iter->join_value;
+				*join_value_temp = value_ptr;
+			}
 			queue_priority_1 = enqueue(iter, queue_priority_1, &priority1_size);
 			
 		}
