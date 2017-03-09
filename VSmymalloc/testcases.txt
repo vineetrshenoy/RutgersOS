@@ -1,0 +1,13 @@
+TESTCASES
+
+This only accounts for the ones that we had to develop
+
+grindE: Generates a random number (for a switch statement) and a random size to malloc. The random number determines the type of the pointers (int, float, char, double). These pointers are generated and stored in an array, which are then freed one by on. 
+
+Through this test case, we are not only testing the randomness of malloc, bu we are also testing whether we can cast our pointer. This is incredibly important in C; the success of the test shows that we are creating a industrial-prototype malloc. Also, we were able to free all the pointers successfully, which is important to avoid memory leakage.
+
+
+grindF: In this test case, we had a steadily increasing malloc size. For example, for i = 0 to 1500, we continuously increased the size of our malloc, and from i = 1500 to 3000, we steadily decreased the size of our malloc.
+
+
+This tested the ability of the malloc function to allocate the correct amount of space, or return null if not possible. This would also be a great way to experiment with memory fragmentation. While we did not create a function to inspect our memory, a function like this would thoroughly check for fragmentation.
