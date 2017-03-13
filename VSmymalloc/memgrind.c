@@ -358,7 +358,7 @@ void callGrindF(){
 }
 
 int main(){
-	
+	/*
 	srand(time(NULL));
 	printf("\n");
 	
@@ -370,15 +370,16 @@ int main(){
 	callGrindE();
 	callGrindF();
 	
-
+*/
 	char* array = (char*)malloc(10);
-	/*
+	
+	
 	array[0] = 'h';
 	array[1] = 'e';
 	array[2] = 'l';
 	array[3] = '\0';
 	printf("%s\n", array);
-	*/
+	
 
 
 	return 0;

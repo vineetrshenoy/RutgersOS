@@ -17,6 +17,7 @@ void test(){
 
 
 static char myBlock[5000];
+int isInitialized = 0;
 
 
 /* Creates a space in memory based on size, if available. Returns NULL if not
@@ -31,6 +32,11 @@ void * mymalloc(size_t size, char * b, int a){
 	char *headerPointer;
 	char * footerPointer;
 	int oldSize, difference, adjustedSize;
+	
+	if (isInitialized == 0){
+		initialize();
+		isInitialized = 1;
+	}
 
 	//Spurrious case. size = 0
 	if (size == 0){
@@ -50,7 +56,7 @@ void * mymalloc(size_t size, char * b, int a){
 	if ((ptr = findFit(extendedSize)) != NULL){
 		 oldSize = getSize(ptr);		//Get the old size of the block
 		 difference =  oldSize - extendedSize;
-		//Case 1
+		//Case 1: If there is enough space for the memory + header/footer
 		if ((oldSize > extendedSize) && (difference > (2 * HDRSIZE))){	
 			setValue(getFooter(ptr), difference,0);
 			setValue(getHeader(ptr), extendedSize,1);
