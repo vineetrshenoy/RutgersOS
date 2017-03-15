@@ -1,7 +1,13 @@
 1. join() segfaults -- function header
+	When we run join, we do not get the expected behavior. We believe that this is because of the function header, and in class, Bill mentioned that we'll need a double pointer to our thread struct. what does this mean?
 2. malloc() did not allocate memory
+	When we first called my_pthread_create(), we would try to allocate some memory (~line 73). We would not get any memory back, and the program would segfault. Any reason for this?
 3. mutex locks
 4. yield()
 5. maintenance cycle
 6. Mutex announcement code
-8^D
+
+
+What is the best way to approach the next project? 
+What is the best way to desing the abstraction of the page?
+Pages would be swapped in and out of the 8MB memory, right? So when we malloc, we are mallocing inside a specific page first, then going to a new page if the first page is full?
