@@ -1,0 +1,7 @@
+1. join() segfaults -- function header
+2. malloc() did not allocate memory
+3. mutex locks
+4. yield()
+5. maintenance cycle
+6. Mutex announcement code
+8^D
