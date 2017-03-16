@@ -96,17 +96,15 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		mainThread->state = ACTIVE;	//Sets thread to active stat
 		current = mainThread;
 		queue_node *main_node = malloc(sizeof(queue_node));
-		main_node->thread = mainThread;
-		main_node->priority = 1;
-		main_node->join_value = NULL;
-		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
-
-		maintenanceCycle(0);
+	main_node->thread = mainThread;
+	main_node->priority = 1;
+	main_node->join_value = NULL;
+	queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
 	}
 
 
 
-	//my_pthread_yield()
+	my_pthread_yield()
 	return 0;
 
 }
@@ -271,8 +269,12 @@ void my_pthread_exit(void * value_ptr){
 		if(current_thread->thread_id == queue_priority_1_head_thread->thread_id){
 			removed_node = dequeue(&queue_priority_1, &priority1_size);
 			removed_node_id = removed_node->thread->thread_id;
-			free(removed_node->thread);
-			free(removed_node);
+			// free(removed_node->thread);
+			// free(removed_node);
+			removed_node->thread->state = COMPLETED;
+			if (value_ptr != NULL) {
+				removed_node->thread->return_value = value_ptr;
+			}
 			check = 0;
 		}
 	}
@@ -281,32 +283,36 @@ void my_pthread_exit(void * value_ptr){
 		my_pthread_t *queue_priority_2_head_thread = queue_priority_2_head->thread;
 		removed_node = dequeue(&queue_priority_2, &priority2_size);
 		removed_node_id = removed_node->thread->thread_id;
-		free(removed_node->thread);
-		free(removed_node);
+		// free(removed_node->thread);
+		// free(removed_node);
+		removed_node->thread->state = COMPLETED;
+		if (value_ptr != NULL) {
+			removed_node->thread->return_value = value_ptr;
+		}
 	}
 
 
 
 	
-	queue_node * iter; 
-	int queueSize = wait_size;	//number of nodes in the wait queue
-	int i;	//counter
-	for (i = 0; i < queueSize; i++){
-		iter = dequeue(&wait_queue, &wait_size);	//dequeue a iter
-		//if the current thread is in the waitqueue
-		if (iter->thread->thread_id == removed_node_id){
-			if(iter->join_value != NULL) {
-				void **join_value_temp = iter->join_value;
-				*join_value_temp = value_ptr;
-			}
-			queue_priority_1 = enqueue(iter, queue_priority_1, &priority1_size);
+	// queue_node * iter; 
+	// int queueSize = wait_size;	//number of nodes in the wait queue
+	// int i;	//counter
+	// for (i = 0; i < queueSize; i++){
+	// 	iter = dequeue(&wait_queue, &wait_size);	//dequeue a iter
+	// 	//if the current thread is in the waitqueue
+	// 	if (iter->thread->thread_id == removed_node_id){
+	// 		if(iter->join_value != NULL) {
+	// 			void **join_value_temp = iter->join_value;
+	// 			*join_value_temp = value_ptr;
+	// 		}
+	// 		queue_priority_1 = enqueue(iter, queue_priority_1, &priority1_size);
 			
-		}
+	// 	}
 		
-		else{
-		wait_queue = enqueue(iter, wait_queue, &wait_size);
-		}
-	}
+	// 	else{
+	// 	wait_queue = enqueue(iter, wait_queue, &wait_size);
+	// 	}
+	// }
 	
 
 	current = NULL;
@@ -319,10 +325,10 @@ void my_pthread_exit(void * value_ptr){
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
 	//Check if it is in the wait_queue. if not, return error
-	if (search_wq() == 1){
-		printf("Unable to join\n");
-		return -1;
-	}
+	// if (search_wq() == 1){
+	// 	printf("Unable to join\n");
+	// 	return -1;
+	// }
 	//get the node from the priority queue
 	queue_node * node = search_pq();
 	if (node == NULL){
@@ -330,16 +336,26 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		return -1;
 	}
 
-	//set the id on which this thread is waiting and add to queue
-	node->waiting_id = thread.thread_id;
-
-	if (value_ptr != NULL) {
-		node->join_value = value_ptr;
+	while (thread->state != COMPLETED) {
+		my_pthread_yield();
 	}
 
-	wait_queue = enqueue(node, wait_queue, &wait_size);
+	//set the id on which this thread is waiting and add to queue
+	// node->waiting_id = thread.thread_id;
 
-	my_pthread_yield();
+	if (value_ptr != NULL) {
+		// node->join_value = value_ptr;
+		*value_ptr = thread->return_value;
+	}
+
+	free(thread->context->uc_stack.ss_sp);
+	free(thread->context);
+	free(thread);
+
+
+	// wait_queue = enqueue(node, wait_queue, &wait_size);
+
+	// my_pthread_yield();
 
 	return 0;
 
