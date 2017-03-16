@@ -345,15 +345,6 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 }
 
-
-
-
-int FetchAndAdd(int *ptr) {
-	int old = *ptr;
-	*ptr = old + 1;
-	return old;
-}
-
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
 
 	// mutex queue is needed
@@ -371,7 +362,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 	
 
 
-	int myturn = FetchAndAdd(&mutex->ticket);
+	int myturn = __sync_fetch_and_add(&mutex->ticket, 1);
 	while (mutex->turn != myturn)
 		//my_pthread_yield(); //spin
 	return 0;
