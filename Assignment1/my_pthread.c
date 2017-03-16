@@ -1,5 +1,5 @@
 // Naorin Hossain, Vasishta Kalinadhabhotta, Vineet Shenoy
-// Tested on: 
+// Tested on: adapter.cs.rutgers.edu
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +21,7 @@ int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
 
-my_pthread_t * current = NULL;
+my_pthread_t current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
 queue_node * wait_queue = NULL; 
@@ -32,64 +32,14 @@ int wait_size = 0;
 void timer_handler (int signum){
 	my_pthread_yield();
 }
-void maintenanceCycle (int signum){
-	printf("maintenanceCycle\n");
-	struct sigaction sa;
 
-	queue_node *temp = NULL;
-	temp = queue_priority_1;
-	queue_priority_1 = queue_priority_2;
-	queue_priority_2 = temp;
-
-	/* Install timer_handler as the signal handler for SIGVTALRM. */
-	memset (&sa, 0, sizeof (sa));
-	sa.sa_handler = &maintenanceCycle;
-	sigaction (SIGALRM, &sa, NULL);
-	struct itimerval maintenance_timer;
-
-	maintenance_timer.it_value.tv_sec = 0;
-	maintenance_timer.it_value.tv_usec = 30000000;
-	maintenance_timer.it_interval.tv_sec = 0;
-	maintenance_timer.it_interval.tv_usec = 30000000;
-
-	setitimer (ITIMER_REAL, &maintenance_timer, NULL);
-}
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
-
-
-	// ------VINEET'S CODE ----
-	thread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //Malloc space for new thread
-	thread->context = (ucontext_t *) malloc(sizeof(ucontext_t)); 	//Also malloc space for ucontext
-
-	//Get context to initialize new thread
-	if(getcontext(thread->context) == -1){
-		printf("Error getting context. Returning -1\n");
-		return -1;
-	}
-
-	ucontext_t * newContext = thread->context;
-	(*newContext).uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
-	(*newContext).uc_stack.ss_size = STACK_SIZE;	//describes size of stack
-	(*newContext).uc_link = NULL;
-	
-
-	thread->thread_id = threadIDS; //Gives the thread an ID
-	threadIDS++;
-	thread->state = ACTIVE;	//Sets thread to active stat
-
-	makecontext(thread->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_node *new_node = malloc(sizeof(queue_node));
-	new_node->thread = thread;
-	new_node->priority = 1;
-	new_node->join_value = NULL;
-	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
-	
 			//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
 		isInitialized = 1;	//change isInitialized flag
-		my_pthread_t * mainThread = (my_pthread_t *) malloc(sizeof(my_pthread_t)); //malloc space for the my_pthread struct
+		my_pthread_t mainThread = malloc(sizeof(struct my_pthread_t)); //malloc space for the my_pthread struct
 		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
@@ -102,9 +52,38 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
 	}
 
+	// ------VINEET'S CODE ----
+	*thread = malloc(sizeof(struct my_pthread_t)); //Malloc space for new thread
+	(*thread)->context = (ucontext_t *) malloc(sizeof(ucontext_t)); 	//Also malloc space for ucontext
+
+	//Get context to initialize new thread
+	if(getcontext((*thread)->context) == -1){
+		printf("Error getting context. Returning -1\n");
+		return -1;
+	}
+
+	ucontext_t * newContext = (*thread)->context;
+	(*newContext).uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
+	(*newContext).uc_stack.ss_size = STACK_SIZE;	//describes size of stack
+	(*newContext).uc_link = NULL;
+	
+
+	(*thread)->thread_id = threadIDS; //Gives the thread an ID
+	threadIDS++;
+	(*thread)->state = ACTIVE;	//Sets thread to active stat
+
+	makecontext((*thread)->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
+	queue_node *new_node = malloc(sizeof(queue_node));
+	new_node->thread = *thread;
+	new_node->priority = 1;
+	new_node->join_value = NULL;
+	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
+	
 
 
-	my_pthread_yield()
+
+
+	my_pthread_yield();
 	return 0;
 
 }
@@ -131,7 +110,7 @@ void my_pthread_yield(){
 	
 	//active thread is in priority 1
 	if(current_thread_node){
-		my_pthread_t *current_thread = current_thread_node->thread;
+		my_pthread_t current_thread = current_thread_node->thread;
 		printf("1. Thread found in priority 1: %i\n", current_thread->thread_id);
 
 		if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
@@ -150,7 +129,7 @@ void my_pthread_yield(){
 			priority = 2;
 			next_thread_node = peek(queue_priority_2); // if there is no threads left in priority 1, then take it from priority 2, we know there exists one because we enqueued one earlier
 		}
-		my_pthread_t* next_thread = next_thread_node->thread; 
+		my_pthread_t next_thread = next_thread_node->thread; 
 
 		printf("2. Next thread found (to be scheduled), in priority %i: %i\n", priority, next_thread->thread_id);
 
@@ -168,9 +147,26 @@ void my_pthread_yield(){
 
 			setitimer (ITIMER_REAL, &timer, NULL);
 
+			if(next_thread->thread_id == 0) {
+				isInitialized = 0;
+			}
 			setcontext(next_thread->context);
+		}else if (current->thread_id != current_thread->thread_id){
+			my_pthread_t temp = current;
+			current = current_thread;
+
+			timer.it_value.tv_sec = 0;
+			timer.it_value.tv_usec = 500000*priority;
+			timer.it_interval.tv_sec = 0;
+			timer.it_interval.tv_usec = 500000*priority;
+
+			setitimer(ITIMER_REAL, &timer, NULL);
+			if(current_thread->thread_id == 0) {
+				isInitialized = 0;
+			}
+			swapcontext(temp->context, current_thread->context);
 		}else{
-			my_pthread_t *temp = current;
+			my_pthread_t temp = current;
 			current = next_thread;
 
 			timer.it_value.tv_sec = 0;
@@ -179,6 +175,9 @@ void my_pthread_yield(){
 			timer.it_interval.tv_usec = 500000*priority;
 
 			setitimer(ITIMER_REAL, &timer, NULL);
+			if(next_thread->thread_id == 0) {
+				isInitialized = 0;
+			}
 			swapcontext(temp->context, next_thread->context);
 		}
 	}
@@ -190,7 +189,7 @@ void my_pthread_yield(){
 
 		//active thread is in priority 2
 		if(current_thread_node){
-			my_pthread_t *current_thread = current_thread_node->thread;
+			my_pthread_t current_thread = current_thread_node->thread;
 
 			printf("3. Thread found in priority 2: %i\n", current_thread->thread_id);
 			if (current_thread->state == ACTIVE && current_thread->state != COMPLETED) {
@@ -202,7 +201,7 @@ void my_pthread_yield(){
 			}
 			queue_node *next_thread_node = peek(queue_priority_2); // Run another thread from priority 2. It will re-run the thread that was just taken out of schedule if it is the only one
 			priority = 2;
-			my_pthread_t *next_thread = next_thread_node->thread;
+			my_pthread_t next_thread = next_thread_node->thread;
 			next_thread->state = ACTIVE;
 			printf("4. Next thread found (to be scheduled), in priority 2: %i\n", next_thread->thread_id);
 
@@ -217,10 +216,26 @@ void my_pthread_yield(){
 				timer.it_interval.tv_usec = 500000*priority;
 
 				setitimer (ITIMER_REAL, &timer, NULL);
-
+				if(next_thread->thread_id == 0) {
+					isInitialized = 0;
+				}
 				setcontext(next_thread->context);
+			}else if (current->thread_id != current_thread->thread_id){
+				my_pthread_t temp = current;
+				current = current_thread;
+
+				timer.it_value.tv_sec = 0;
+				timer.it_value.tv_usec = 500000*priority;
+				timer.it_interval.tv_sec = 0;
+				timer.it_interval.tv_usec = 500000*priority;
+
+				setitimer(ITIMER_REAL, &timer, NULL);
+				if(current_thread->thread_id == 0) {
+					isInitialized = 0;
+				}
+				swapcontext(temp->context, current_thread->context);
 			}else{
-				my_pthread_t *temp = current;
+				my_pthread_t temp = current;
 				current = next_thread;
 
 				timer.it_value.tv_sec = 0;
@@ -229,6 +244,9 @@ void my_pthread_yield(){
 				timer.it_interval.tv_usec = 500000*priority;
 
 				setitimer(ITIMER_REAL, &timer, NULL);
+				if(next_thread->thread_id == 0) {
+					isInitialized = 0;
+				}
 				swapcontext(temp->context, next_thread->context);
 			}
 		}
@@ -255,7 +273,7 @@ void my_pthread_exit(void * value_ptr){
 	4. my_pthread_yield
  
 	*/
-	my_pthread_t* current_thread = current;
+	my_pthread_t current_thread = current;
 	queue_node *queue_priority_1_head = peek(queue_priority_1);
 	queue_node *queue_priority_2_head = peek(queue_priority_2);
 
@@ -264,7 +282,7 @@ void my_pthread_exit(void * value_ptr){
 	int removed_node_id = 0;
 
 	if(queue_priority_1_head){
-		my_pthread_t *queue_priority_1_head_thread = queue_priority_1_head->thread;
+		my_pthread_t queue_priority_1_head_thread = queue_priority_1_head->thread;
 		queue_node * removed_node = NULL;
 		if(current_thread->thread_id == queue_priority_1_head_thread->thread_id){
 			removed_node = dequeue(&queue_priority_1, &priority1_size);
@@ -278,9 +296,9 @@ void my_pthread_exit(void * value_ptr){
 			check = 0;
 		}
 	}
-	if(check==1){
+	if(check==1 && queue_priority_2_head){
 		queue_node * removed_node = NULL;
-		my_pthread_t *queue_priority_2_head_thread = queue_priority_2_head->thread;
+		my_pthread_t queue_priority_2_head_thread = queue_priority_2_head->thread;
 		removed_node = dequeue(&queue_priority_2, &priority2_size);
 		removed_node_id = removed_node->thread->thread_id;
 		// free(removed_node->thread);
@@ -289,6 +307,15 @@ void my_pthread_exit(void * value_ptr){
 		if (value_ptr != NULL) {
 			removed_node->thread->return_value = value_ptr;
 		}
+	}
+	else if (current->thread_id == 0) {
+		current->state = COMPLETED;
+		if (value_ptr != NULL) {
+			current->return_value = value_ptr;
+		}
+		printf("exiting thread: %d\n", current->thread_id);
+		current = NULL;
+		return;
 	}
 
 
@@ -314,7 +341,7 @@ void my_pthread_exit(void * value_ptr){
 	// 	}
 	// }
 	
-
+	printf("exiting thread: %d\n", current->thread_id);
 	current = NULL;
 	my_pthread_yield();
 	
@@ -330,6 +357,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	// 	return -1;
 	// }
 	//get the node from the priority queue
+	printf("join was called.\n");
 	queue_node * node = search_pq();
 	if (node == NULL){
 		printf("Unable to join\n");
@@ -337,6 +365,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	}
 
 	while (thread->state != COMPLETED) {
+		printf("waiting on %d\n", thread->thread_id);
 		my_pthread_yield();
 	}
 
@@ -360,6 +389,15 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	return 0;
 
 }
+
+
+
+
+// int FetchAndAdd(int *ptr) {
+// 	int old = *ptr;
+// 	*ptr = old + 1;
+// 	return old;
+// }
 
 int my_pthread_mutex_init(my_pthread_mutex_t * mutex, const my_pthread_mutexattr_t * mutexattr){
 
@@ -519,6 +557,8 @@ void printQueue(queue_node *tail){
 	}
 }
 
+
+
 void * printFunction(void *arg){
 	printf("Waiting for signal handler\n");
 	sleep(4);
@@ -541,7 +581,7 @@ void handler(int sig){
 	setcontext(&ucp_main);
 }
 
-
+/*
 
 int main(){
 
@@ -550,7 +590,7 @@ int main(){
 	my_pthread_create(thread, NULL, &counterFunction, NULL);
 	my_pthread_create(thread2, NULL, &printFunction, NULL);
 	my_pthread_join(*thread2, NULL);
-	my_pthread_yield();
+	my_pthread_yield();*/
 
 	/*
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
@@ -570,7 +610,7 @@ int main(){
 */
 
 
-
+/*
 	printf("Ending main\n");
 	return 0;
-}
+}*/
