@@ -1,5 +1,5 @@
 // Naorin Hossain, Vasishta Kalinadhabhotta, Vineet Shenoy
-// Tested on: 
+// Tested on: adapter.cs.rutgers.edu
 
 #ifndef MY_PTHREAD_T_H
 #define MY_PTHREAD_T_H
@@ -10,7 +10,7 @@ typedef enum {
 	COMPLETED
 } my_pthread_state;
 
-typedef struct my_pthread_t {
+struct my_pthread_t {
 
 	int thread_id;
 	ucontext_t * context;
@@ -18,8 +18,9 @@ typedef struct my_pthread_t {
 	my_pthread_state state;
 	void* return_value;
 
-}my_pthread_t;
+};
 
+typedef struct my_pthread_t * my_pthread_t;
 
 typedef struct queue_node {
 	int priority;
