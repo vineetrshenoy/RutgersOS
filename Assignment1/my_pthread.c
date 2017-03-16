@@ -364,7 +364,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 
 	int myturn = __sync_fetch_and_add(&mutex->ticket, 1);
 	while (mutex->turn != myturn)
-		//my_pthread_yield(); //spin
+		my_pthread_yield(); //spin
 	return 0;
 	
 }
