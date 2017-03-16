@@ -4,6 +4,14 @@
 #ifndef MY_PTHREAD_T_H
 #define MY_PTHREAD_T_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ucontext.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <unistd.h>
+
 typedef enum {
 	ACTIVE,
 	WAITING,
@@ -24,7 +32,7 @@ typedef struct my_pthread_t * my_pthread_t;
 
 typedef struct queue_node {
 	int priority;
-	my_pthread_t* thread;
+	my_pthread_t thread;
 	struct queue_node *next;
 	int waiting_id;
 	void **join_value;
