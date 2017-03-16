@@ -1,5 +1,5 @@
 // Naorin Hossain, Vasishta Kalinadhabhotta, Vineet Shenoy
-// Tested on: 
+// Tested on: adapter.cs.rutgers.edu
 
 #include <stdio.h>
 #include <stdlib.h>
