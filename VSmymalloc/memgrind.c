@@ -371,16 +371,11 @@ int main(){
 	callGrindF();
 	
 */
-	char* array = (char*)malloc(10);
 	
-	
-	array[0] = 'h';
-	array[1] = 'e';
-	array[2] = 'l';
-	array[3] = '\0';
-	printf("%s\n", array);
-	
+	char * array = (char *)malloc(sizeof(char) * 10);
 
+	free(array);
+	printf("%s\n", array);
 
 	return 0;
 }

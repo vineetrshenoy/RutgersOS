@@ -16,6 +16,7 @@
 
 static void * memory;
 static char myBlock[5000];
+void * currentPage;
 int isInitialized = 0;
 int memoryInitialized;
 int pageSize;
@@ -29,7 +30,7 @@ void initializeMemory(){
 	int error, i;
 	void * page;
 	//If the memory has not been initialized, enter
-	if(!memoryInitialized){
+	
 		memoryInitialized = 1;
 		pageSize = sysconf(_SC_PAGESIZE);	//get the page size of this system
 		error = posix_memalign(&memory, pageSize, 10 * pageSize); // Create memory that is size of 10 pages
@@ -43,8 +44,8 @@ void initializeMemory(){
 			initializePage(page);
 
 		}
+	currentPage = memory;
 	
-	}
 
 }
 
@@ -85,9 +86,9 @@ void * mymalloc(size_t size, char * b, int a){
 	char * footerPointer;
 	int oldSize, difference, adjustedSize;
 	
-	if (isInitialized == 0){
-		initialize();
-		isInitialized = 1;
+	if (memoryInitialized == 0){
+		initializeMemory();
+		memoryInitialized = 1;
 	}
 
 	//Spurrious case. size = 0
@@ -143,7 +144,7 @@ void * mymalloc(size_t size, char * b, int a){
 */
 
 char * findFit(int extendedSize){
-	char * ptr = myBlock;	//beginning of memory
+	char * ptr = (char *)currentPage;	//beginning of memory
 	ptr = ptr + (2 * HDRSIZE); 	//Move past prologue block and header
 	
 	//blockSize and allocated bit of the first block in memory
@@ -175,7 +176,7 @@ char * findFit(int extendedSize){
 void initialize(){
 	char * memBlock;
 
-	memBlock = myBlock;
+	memBlock = (char *)currentPage;
 	setValue(memBlock,0,1); 	//Setting the prologue block
 	char * epilogue = memBlock + MEMSIZE - HDRSIZE;	//Get address of epilogue
 	setValue(epilogue, 0, 1);	//Setting the epilogue block
@@ -204,12 +205,13 @@ void myfree(void * ptr, char * b, int a){
 		return;
 	}
 
-	int relativeAddress = (char*)(ptr) - (char*)myBlock;
-
+	int relativeAddress = (char*)(ptr) - (char*)currentPage;
+	/*
 	if (relativeAddress > sizeof(myBlock) - 2*HDRSIZE || relativeAddress < HDRSIZE){
 		// printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
 		return;
 	}
+	*/
 
 	if (getAllocation(ptr) == 0){
 		//printf("Can not free an already free block in %s line %d\n", __FILE__, __LINE__);
@@ -401,7 +403,7 @@ char * createExtremities(char * p, int size, int allocated){
 
 
 
-
+/*
 int main(){
 
 	
@@ -444,10 +446,10 @@ int main(){
 	char * footer = getFooter(ptr);
 	printf("The FOOTER is at location %p \n", footer);
 	printf("and has value %#010x\n", *footer);
-	*/
+	
 
 }
-
+*/
  
   
 
