@@ -413,10 +413,16 @@ void loadPages(){
 		mprotect(memory + (i * pageSize), pageSize, PROT_NONE);
 		i++;
 	}
-	//Try to load something into page 7
+
+	i = 5;
+	while (i < 10){
+		mprotect(memory + (i * pageSize), pageSize, PROT_WRITE);
+		i++;
+	}
+	//Try to load something into page 7. Should succeed
 	char * newptr = (char *)(memory + (7*pageSize));
 	*newptr = 'a';
-	printf("This line shouldn't run\n");
+	printf("This line should run\n");
 
 }
 
