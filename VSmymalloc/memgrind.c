@@ -372,10 +372,10 @@ int main(){
 	
 */
 	
+	
 	char * array = (char *)malloc(sizeof(char) * 10);
 
-	free(array);
-	printf("%s\n", array);
-
+	loadPages();
+	
 	return 0;
 }

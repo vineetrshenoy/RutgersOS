@@ -16,6 +16,7 @@
 
 static void * memory;
 static char myBlock[5000];
+void *  pages[5];
 void * currentPage;
 int isInitialized = 0;
 int memoryInitialized;
@@ -401,53 +402,28 @@ char * createExtremities(char * p, int size, int allocated){
 }
 
 
+void loadPages(){
+	int i;
+	for(i = 0; i < 5; i++){
+		pages[i] = memory + (i * pageSize);
+	}
+}
 
 
 /*
 int main(){
 
 	
-	initializeMemory();
+	//initializeMemory();
 
+	int i;	
+	char * array = (char *) mymalloc(sizeof(char) * 10);
 
-
-
-
-
-
-
-	/*
-	printf("HelloWorld\n");	
-	initialize(myBlock);
-	printf("The address of myBlock is %p \n", myBlock);
-	int *block = (int *) (myBlock + 4);
-	printf("The header has address %p and value %#010x\n", block, *block);
-	int * footer = (int *) (myBlock + *block);
-	printf("The footer has address %p and value %#010x\n", footer, *footer);
-	char * test1 = mymymalloc(8);
-	printf("Process complete\n");
-	char * test2 = mymymalloc(8);
-	char * test3 = mymymalloc(8);
-	//char * test3 = mymymalloc(8);
-	myfree(test1);
-	myfree(test2);
-	printf("Process Complete\n");
+	for(i = 0; i < 5; i++){
+		pages[i] = memory + (i * pageSize);
+	}
+	
 	return 0;
-	
-	char * ptr = (char * ) mymalloc(256*sizeof(char));
-	printf("The address BEFORE manipulation is %p\n", ptr);
-	ptr = createExtremities(ptr, 16, 1);
-	setValue(getHeader(ptr), 4,0);
-	setValue(getFooter(ptr),4,0);
-	printf("The address AFTER  manipulation is %p\n", ptr);
-	char * header = getHeader(ptr);
-	printf("The HEADER is at location %p \n", header);
-	printf("and has value %#010x \n", *header);
-	char * footer = getFooter(ptr);
-	printf("The FOOTER is at location %p \n", footer);
-	printf("and has value %#010x\n", *footer);
-	
-
 }
 */
  
