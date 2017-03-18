@@ -13,3 +13,5 @@ void initialize();
 char * findFit(int extendedSize);
 void * mymalloc(size_t size, char * b, int a);
 void coalesce(char * ptr);
+void initializeMemory();
+void initializePage();

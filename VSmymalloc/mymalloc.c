@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #include "mymalloc.h"
 
 
@@ -10,14 +12,64 @@
 #define malloc(x) mymymalloc(x,__LINE__,__FILE__)
 #define free(x) myfree(x,__LINE__,__FILE__)
 
-void test(){
-	printf("Entered the void method\n");
-	memvoid();
-} 
 
 
+static void * memory;
 static char myBlock[5000];
 int isInitialized = 0;
+int memoryInitialized;
+int pageSize;
+
+
+/* Initializes the 8MB memory as well as all the pages in memory
+	INPUT: None
+	OUTPUT: None
+*/
+void initializeMemory(){
+	int error, i;
+	void * page;
+	//If the memory has not been initialized, enter
+	if(!memoryInitialized){
+		memoryInitialized = 1;
+		pageSize = sysconf(_SC_PAGESIZE);	//get the page size of this system
+		error = posix_memalign(&memory, pageSize, 10 * pageSize); // Create memory that is size of 10 pages
+		if (error != 0){
+			printf("Error Allocating 8MB memory\n");
+			return;
+		}
+
+		for (i = 0; i < 10; i++){
+			page = memory + (i * pageSize);
+			initializePage(page);
+
+		}
+	
+	}
+
+}
+
+
+/* Initializes the page passed in as an argument. Puts in a prologue, epilogue
+	header, and footer block
+	INPUT: void * to beginning of page
+	OUTPUT: None
+*/
+void initializePage(void * page){
+	int * ptr;
+
+	ptr = (int *) page;
+	*ptr = 0 | 1; // Set the prologue block to zero with LSB a 1
+	ptr = ptr + 1; // Move 4 bytes over to the header
+	*ptr = (pageSize - (2 * HDRSIZE)) | 0 ; // Set the header to remaining size and unallocated
+	int value = pageSize - 2* HDRSIZE;
+	ptr = ptr + (pageSize - 2* HDRSIZE)/4; //At the beginnning of the epilogue block
+	*ptr = 0 | 1;	// Setting the epilogue block, matches prologue block
+	ptr = ptr - 1; // Move back 4 bytes to footer
+	*ptr = (pageSize - 2 * HDRSIZE) | 0; //footer
+
+}
+
+
 
 
 /* Creates a space in memory based on size, if available. Returns NULL if not
@@ -349,9 +401,20 @@ char * createExtremities(char * p, int size, int allocated){
 
 
 
-/*
 
 int main(){
+
+	
+	initializeMemory();
+
+
+
+
+
+
+
+
+	/*
 	printf("HelloWorld\n");	
 	initialize(myBlock);
 	printf("The address of myBlock is %p \n", myBlock);
@@ -368,7 +431,7 @@ int main(){
 	myfree(test2);
 	printf("Process Complete\n");
 	return 0;
-	/*
+	
 	char * ptr = (char * ) mymalloc(256*sizeof(char));
 	printf("The address BEFORE manipulation is %p\n", ptr);
 	ptr = createExtremities(ptr, 16, 1);
@@ -381,10 +444,10 @@ int main(){
 	char * footer = getFooter(ptr);
 	printf("The FOOTER is at location %p \n", footer);
 	printf("and has value %#010x\n", *footer);
-	
+	*/
 
 }
 
  
- */   
+  
 
