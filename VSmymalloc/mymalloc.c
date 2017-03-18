@@ -404,9 +404,20 @@ char * createExtremities(char * p, int size, int allocated){
 
 void loadPages(){
 	int i;
+	//Load first 5 pages
 	for(i = 0; i < 5; i++){
 		pages[i] = memory + (i * pageSize);
 	}
+	//Protect last 5 pages
+	while (i < 10){
+		mprotect(memory + (i * pageSize), pageSize, PROT_NONE);
+		i++;
+	}
+	//Try to load something into page 7
+	char * newptr = (char *)(memory + (7*pageSize));
+	*newptr = 'a';
+	printf("This line shouldn't run\n");
+
 }
 
 
