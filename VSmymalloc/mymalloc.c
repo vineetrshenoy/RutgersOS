@@ -75,9 +75,9 @@ void initializePage(void * page){
 
 }
 
-/* Gets the page size stored in the prologue block
+/* Gets the page's thread id stored in the prologue block
 	INPUT: void * to beginning of page
-	OUTPUT: the pageSize returned as a u_int 
+	OUTPUT: the page's thread id returned as a u_int 
 */
 u_int getPageID(void * page){
 	u_int * ptr;
@@ -103,12 +103,47 @@ u_int getPageSize(void * page){
 }
 
 
+/* Sets the page's thread_id in the prologue block
+	INPUT: void * to beginning of page
+	OUTPUT: none 
+*/
+void setPageID(void * page, int thread_id){
+	u_int * ptr;
+	
+	ptr = (u_int *) page;
+
+	*ptr = *ptr & ~0xFFF;	//clears the lower twelve bits
+	*ptr = *ptr | thread_id;
+
+	return;
+}
+
+
+/* Sets the page's size in the prologue block
+	INPUT: void * to beginning of page
+	OUTPUT: none 
+*/
+void setPageSize(void * page, int new_size){
+	u_int * ptr;
+	
+	int page_id = getPageID(page);
+	
+	ptr = (u_int *) page;
+
+	*ptr = *ptr & 0x0;	//clears all bits
+	*ptr = new_size;	//sets the new size
+	*ptr = *ptr << 12;	//shifts bits over by 12
+	*ptr = *ptr | page_id;
+
+
+	return;
+}
+
 /* Creates a space in memory based on size, if available. Returns NULL if not
 	INPUT: size_t of the block to created
 	OUTPUT: The char pointer of the available space in memory; NULL if no place
 	This also initializes the header and footer.
 */
-
 void * mymalloc(size_t size, char * b, int a){
 	size_t extendedSize;
 	char * ptr;
@@ -455,13 +490,16 @@ void loadPages(){
 
 }
 
-
 /*
+
 int main(){
 
 	
-	//initializeMemory();
-
+	initializeMemory();
+	setPageID(memory, 42);
+	int x = getPageSize(memory);
+	int y = getPageID(memory);
+	/*
 	int i;	
 	char * array = (char *) mymalloc(sizeof(char) * 10);
 
@@ -470,8 +508,10 @@ int main(){
 	}
 	
 	return 0;
+	
 }
 */
+
  
   
 
