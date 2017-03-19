@@ -316,12 +316,13 @@ void my_pthread_exit(void * value_ptr){
 		if(current_thread->thread_id == queue_priority_1_head_thread->thread_id){
 			removed_node = dequeue(&queue_priority_1, &priority1_size);
 			removed_node_id = removed_node->thread->thread_id;
-			// free(removed_node->thread);
-			// free(removed_node);
+
 			removed_node->thread->state = COMPLETED;
 			if (value_ptr != NULL) {
 				removed_node->thread->return_value = value_ptr;
 			}
+			// free(removed_node->thread);
+			free(removed_node);
 			check = 0;
 		}
 	}
@@ -330,22 +331,24 @@ void my_pthread_exit(void * value_ptr){
 		my_pthread_t queue_priority_2_head_thread = queue_priority_2_head->thread;
 		removed_node = dequeue(&queue_priority_2, &priority2_size);
 		removed_node_id = removed_node->thread->thread_id;
-		// free(removed_node->thread);
-		// free(removed_node);
+		
 		removed_node->thread->state = COMPLETED;
 		if (value_ptr != NULL) {
 			removed_node->thread->return_value = value_ptr;
 		}
+		// free(removed_node->thread);
+		free(removed_node);
 	}
-	else if (current->thread_id == 0) {
-		current->state = COMPLETED;
-		if (value_ptr != NULL) {
-			current->return_value = value_ptr;
-		}
-		printf("exiting thread: %d\n", current->thread_id);
-		current = NULL;
-		return;
-	}
+	// else if (current->thread_id == 0) {
+	// 	current->state = COMPLETED;
+	// 	if (value_ptr != NULL) {
+	// 		current->return_value = value_ptr;
+	// 	}
+	// 	printf("exiting thread: %d\n", current->thread_id);
+	// 	current = NULL;
+	// 	return;
+	// }
+
 
 
 	
@@ -375,7 +378,6 @@ void my_pthread_exit(void * value_ptr){
 	
 	return;
 }
-
 
 int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	
