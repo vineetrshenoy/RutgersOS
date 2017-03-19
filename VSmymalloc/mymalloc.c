@@ -57,21 +57,50 @@ void initializeMemory(){
 	OUTPUT: None
 */
 void initializePage(void * page){
-	int * ptr;
+	u_int * ptr;
 
-	ptr = (int *) page;
-	*ptr = 0 | 1; // Set the prologue block to zero with LSB a 1
+	ptr = (u_int *) page;
+	*ptr = pageSize; 	//Sets the page size
+	*ptr = *ptr << 12;	//bit shifts to left by 12
+	*ptr = *ptr | 0xFFF;	//sets thread_id to be initially 0xFFF
+
+
 	ptr = ptr + 1; // Move 4 bytes over to the header
 	*ptr = (pageSize - (2 * HDRSIZE)) | 0 ; // Set the header to remaining size and unallocated
-	int value = pageSize - 2* HDRSIZE;
+	u_int value = pageSize - 2* HDRSIZE;
 	ptr = ptr + (pageSize - 2* HDRSIZE)/4; //At the beginnning of the epilogue block
-	*ptr = 0 | 1;	// Setting the epilogue block, matches prologue block
+	*ptr = 0 | 1;	// Setting the epilogue block to the siz
 	ptr = ptr - 1; // Move back 4 bytes to footer
 	*ptr = (pageSize - 2 * HDRSIZE) | 0; //footer
 
 }
 
+/* Gets the page size stored in the prologue block
+	INPUT: void * to beginning of page
+	OUTPUT: the pageSize returned as a u_int 
+*/
+u_int getPageID(void * page){
+	u_int * ptr;
+	
+	ptr = (u_int *) page;
 
+
+	return (*ptr & 0xFFF);	//ID is in last twelve bits
+}
+
+/* Gets the page size stored in the prologue block
+	INPUT: void * to beginning of page
+	OUTPUT: the pageSize returned as a u_int 
+*/
+u_int getPageSize(void * page){
+	u_int * ptr;
+	u_int size;
+
+	ptr = (u_int *) page;
+	size = *ptr & 0xFFFF000; //size bits are in bits 12-27
+	size = size >> 12;	//Shift these bits into the right place
+	return size;
+}
 
 
 /* Creates a space in memory based on size, if available. Returns NULL if not

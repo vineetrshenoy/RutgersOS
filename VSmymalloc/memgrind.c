@@ -373,9 +373,11 @@ int main(){
 */
 	
 	
-	char * array = (char *)malloc(sizeof(char) * 10);
+	//char * array = (char *)malloc(sizeof(char) * 10);
 
-	loadPages();
+	//loadPages();
 	
+	initializeMemory();
+
 	return 0;
 }
