@@ -378,6 +378,7 @@ int main(){
 	//loadPages();
 	
 	initializeMemory();
+	loadPages();
 
 	return 0;
 }

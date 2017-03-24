@@ -21,6 +21,8 @@ void * currentPage;
 int isInitialized = 0;
 int memoryInitialized;
 int pageSize;
+int fullMemorySize = 10 * (2^12);
+
 
 
 /* Initializes the 8MB memory as well as all the pages in memory
@@ -57,9 +59,9 @@ void initializeMemory(){
 	OUTPUT: None
 */
 void initializePage(void * page){
-	u_int * ptr;
+	int * ptr;
 
-	ptr = (u_int *) page;
+	ptr = (int *) page;
 	*ptr = pageSize; 	//Sets the page size
 	*ptr = *ptr << 12;	//bit shifts to left by 12
 	*ptr = *ptr | 0xFFF;	//sets thread_id to be initially 0xFFF
@@ -67,7 +69,7 @@ void initializePage(void * page){
 
 	ptr = ptr + 1; // Move 4 bytes over to the header
 	*ptr = (pageSize - (2 * HDRSIZE)) | 0 ; // Set the header to remaining size and unallocated
-	u_int value = pageSize - 2* HDRSIZE;
+	int value = pageSize - 2* HDRSIZE;
 	ptr = ptr + (pageSize - 2* HDRSIZE)/4; //At the beginnning of the epilogue block
 	*ptr = 0 | 1;	// Setting the epilogue block to the siz
 	ptr = ptr - 1; // Move back 4 bytes to footer
@@ -75,28 +77,34 @@ void initializePage(void * page){
 
 }
 
+
+
+
+
+
 /* Gets the page's thread id stored in the prologue block
 	INPUT: void * to beginning of page
-	OUTPUT: the page's thread id returned as a u_int 
+	OUTPUT: the page's thread id returned as a int 
 */
-u_int getPageID(void * page){
-	u_int * ptr;
+int getPageID(void * page){
+	int * ptr;
 	
-	ptr = (u_int *) page;
+	ptr = (int *) page;
 
+	int id = *ptr & 0xFFF; //ID is in last twelve bits
 
-	return (*ptr & 0xFFF);	//ID is in last twelve bits
+	return id;	
 }
 
 /* Gets the page size stored in the prologue block
 	INPUT: void * to beginning of page
-	OUTPUT: the pageSize returned as a u_int 
+	OUTPUT: the pageSize returned as a int 
 */
-u_int getPageSize(void * page){
-	u_int * ptr;
-	u_int size;
+int getPageSize(void * page){
+	int * ptr;
+	int size;
 
-	ptr = (u_int *) page;
+	ptr = (int *) page;
 	size = *ptr & 0xFFFF000; //size bits are in bits 12-27
 	size = size >> 12;	//Shift these bits into the right place
 	return size;
@@ -108,9 +116,9 @@ u_int getPageSize(void * page){
 	OUTPUT: none 
 */
 void setPageID(void * page, int thread_id){
-	u_int * ptr;
+	int * ptr;
 	
-	ptr = (u_int *) page;
+	ptr = (int *) page;
 
 	*ptr = *ptr & ~0xFFF;	//clears the lower twelve bits
 	*ptr = *ptr | thread_id;
@@ -124,11 +132,11 @@ void setPageID(void * page, int thread_id){
 	OUTPUT: none 
 */
 void setPageSize(void * page, int new_size){
-	u_int * ptr;
+	int * ptr;
 	
 	int page_id = getPageID(page);
 	
-	ptr = (u_int *) page;
+	ptr = (int *) page;
 
 	*ptr = *ptr & 0x0;	//clears all bits
 	*ptr = new_size;	//sets the new size
@@ -137,6 +145,34 @@ void setPageSize(void * page, int new_size){
 
 
 	return;
+}
+
+
+/* Gets a new page to allocate from
+	INPUT: None
+	OUTPUT: None
+*/
+
+void * getNewPage(int requestSize, int thread_id_new){
+	int filledMemory = 0;
+	void * iterator = memory;
+
+	if (requestSize <= pageSize){
+
+		//Memory does not fit in a current page, but is less than 4096 bytes
+		while (filledMemory < fullMemorySize){
+			if (getPageID(iterator) == 0xFFF){
+				setPageID(iterator, thread_id_new);
+				return iterator;
+			}
+
+			filledMemory += getPageSize(iterator);
+			iterator += getPageSize(iterator);
+			
+		}
+	}
+	
+
 }
 
 /* Creates a space in memory based on size, if available. Returns NULL if not
@@ -469,6 +505,7 @@ char * createExtremities(char * p, int size, int allocated){
 void loadPages(){
 	int i;
 	//Load first 5 pages
+	/*
 	for(i = 0; i < 5; i++){
 		pages[i] = memory + (i * pageSize);
 	}
@@ -487,8 +524,16 @@ void loadPages(){
 	char * newptr = (char *)(memory + (7*pageSize));
 	*newptr = 'a';
 	printf("This line should run\n");
+	*/
+
+	for (i = 0; i < 5; i++){
+		setPageID(memory+(i*getPageSize), 10);
+	}
+
+	void * page = getNewPage(200, 15);
 
 }
+
 
 /*
 
