@@ -321,14 +321,14 @@ void coalesce(char * ptr){
 	INPUT: The char pointer pointing to the beginning of usuable memory
 	OUTPUT: The address of the previous block stored in a pointer
 */
-char * getPrevious(char * ptr){
+void * getPrevious(void * ptr){
 	//RYAN CHECK THIS BECAUSE IT DIFFERS FROM THE TEXTBOOK
-	char * footer = ptr - 8;
+	void * footer = ptr - 8;
 	int size = (*(int*) footer) & ~1;
 	// This is the first block. The previous block is the prologue block
 	if ((size == 0) )
 		return NULL;
-	char * previous = ptr - size;
+	void * previous = ptr - size;
 	return previous;
 }
 
@@ -338,10 +338,10 @@ char * getPrevious(char * ptr){
 	INPUT: The char pointer pointing to the beginning of usuable memory
 	OUTPUT: The address of the next block stored in a pointer
 */
-char * getNext(char * ptr){
+void * getNext(void * ptr){
 	//RYAN CHECK THIS BECAUSE IT DIFFERS FROM THE TEXTBOOK
 	int size = getSize(ptr);
-	char * next = ptr + size;
+	void * next = ptr + size;
 	//The current block is the last block. We have reached the epilogue block
 	if ( (getSize(next) == 0) && (getAllocation(next) == 1) )
 		return NULL;
@@ -352,7 +352,7 @@ char * getNext(char * ptr){
 	INPUT: The char pointer 
 	OUTPUT: The address of the header stored in a pointer
 */
-char * getHeader(char * p){
+void * getHeader(void * p){
 	p = p - HDRSIZE;
 	return p;
 }
@@ -362,7 +362,7 @@ char * getHeader(char * p){
 	INPUT: The char pointer
 	OUTPUT: The address of the header stored in a pointer
 */
-char * getFooter(char * p){
+void * getFooter(void * p){
 	p = p + getSize(p) - (2 * HDRSIZE);
 	return p;
 }
@@ -372,7 +372,7 @@ char * getFooter(char * p){
 	INPUT: char pointer to header
 	OUPUT: return the size stored as an int
 */
-int getSize(char * ptr){
+int getSize(void * ptr){
 	int size = (*(int *)getHeader(ptr)) & ~1;
 	return size;
 }
@@ -382,7 +382,7 @@ int getSize(char * ptr){
 	INPUT: char pointer to header
 	OUPUT: return the last bit as an int
 */
-int getAllocation(char * ptr){
+int getAllocation(void * ptr){
 	int allocated = (*(int *)getHeader(ptr)) & 1;
 	return allocated;
 }
@@ -392,7 +392,7 @@ int getAllocation(char * ptr){
 	INPUT: char pointer, int size, int allocated flag
 	OUTPUT: None
 */
-void setValue(char * p, int size, int allocation){
+void setValue(void * p, int size, int allocation){
 	int * ptr = (int *) p; 	// Casts to int pointer. Good practice since we are writing ints
 	*ptr = size | allocation;
 }
