@@ -3,11 +3,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <math.h>
 #include "mymalloc.h"
 
 
 #define HDRSIZE 4
-#define MEMSIZE 5000
+
 
 #define malloc(x) mymymalloc(x,__LINE__,__FILE__)
 #define free(x) myfree(x,__LINE__,__FILE__)
@@ -16,11 +17,12 @@
 
 static void * memory;
 static char myBlock[5000];
-void *  pages[5];
 void * currentPage;
+int OS_SIZE = 0;;
+int USR_SIZE = 6 * (2^20);
 int isInitialized = 0;
-int memoryInitialized;
-int pageSize;
+int memoryInitialized = 0;
+int pageSize = 0;
 
 
 /* Initializes the 8MB memory as well as all the pages in memory
@@ -29,115 +31,66 @@ int pageSize;
 */
 void initializeMemory(){
 	int error, i;
-	void * page;
+	int * ptr;
 	//If the memory has not been initialized, enter
-	
+		OS_SIZE = pow(2,21);
+		USR_SIZE = pow(2,20) * 6;
 		memoryInitialized = 1;
 		pageSize = sysconf(_SC_PAGESIZE);	//get the page size of this system
-		error = posix_memalign(&memory, pageSize, 10 * pageSize); // Create memory that is size of 10 pages
+		error = posix_memalign(&memory, pageSize, pow(2,23)); // Create memory that is size of 10 pages
 		if (error != 0){
 			printf("Error Allocating 8MB memory\n");
 			return;
 		}
 
-		for (i = 0; i < 10; i++){
-			page = memory + (i * pageSize);
-			initializePage(page);
+		/*
+		**** SETTING THE OS REGION OF MEMORY ****
 
-		}
-	currentPage = memory;
-	
+		*/
+		//Keeping last 4 bytes of OS REGION as footer
+		ptr = (int *) memory;
+		//This sets the header to 2^21 -4 | 0;
+		int adjustedSize = OS_SIZE - 4;
+		*ptr = adjustedSize; // writes the adjusted size to the first 4 bits
+		*ptr = *ptr << 1; // move size over 1 bit so we put in a zero
 
+		ptr = ptr + OS_SIZE/4;	//Go to the end of OS REGION
+		ptr = ptr - HDRSIZE/4;	//At the beginning of the footer
+
+		//setting the epilogue to 0 | 1;
+		//*ptr = *ptr & 0x0; //clears area
+		*ptr = 1;	///puts a 1 in the last place
+
+
+		//setting the footer
+		ptr = ptr - HDRSIZE/4; //move back four bytes for the footer
+
+		*ptr = adjustedSize; // writes the adjusted size to the first 4 bits
+		*ptr = *ptr << 1; // move size over 1 bit so we put in a zero
+
+
+		/*
+		**** SETTING THE USER REGION OF MEMORY ****
+
+		*/
+		ptr = (int *) memory;
+		ptr = ptr + OS_SIZE/4; // Gets us to the beginning of user space
+		*ptr = USR_SIZE; //Puts the user memory size as a header
+		*ptr = *ptr << 1; //Moves over by one so that zero in the last place
+
+		ptr = ptr + USR_SIZE/4; // Moves to end of user space
+		//*ptr = *ptr & 0x0; //clears area
+		*ptr = 1;	///puts a 1 in the last place 
+
+		ptr = ptr - HDRSIZE/4; //move back four bytes for the footer
+		*ptr = USR_SIZE; //Puts the user memory size as a header
+		*ptr = *ptr << 1; //Moves over by one so that zero in the last place
 }
 
 
-/* Initializes the page passed in as an argument. Puts in a prologue, epilogue
-	header, and footer block
-	INPUT: void * to beginning of page
-	OUTPUT: None
-*/
-void initializePage(void * page){
-	u_int * ptr;
-
-	ptr = (u_int *) page;
-	*ptr = pageSize; 	//Sets the page size
-	*ptr = *ptr << 12;	//bit shifts to left by 12
-	*ptr = *ptr | 0xFFF;	//sets thread_id to be initially 0xFFF
 
 
-	ptr = ptr + 1; // Move 4 bytes over to the header
-	*ptr = (pageSize - (2 * HDRSIZE)) | 0 ; // Set the header to remaining size and unallocated
-	u_int value = pageSize - 2* HDRSIZE;
-	ptr = ptr + (pageSize - 2* HDRSIZE)/4; //At the beginnning of the epilogue block
-	*ptr = 0 | 1;	// Setting the epilogue block to the siz
-	ptr = ptr - 1; // Move back 4 bytes to footer
-	*ptr = (pageSize - 2 * HDRSIZE) | 0; //footer
 
-}
-
-/* Gets the page's thread id stored in the prologue block
-	INPUT: void * to beginning of page
-	OUTPUT: the page's thread id returned as a u_int 
-*/
-u_int getPageID(void * page){
-	u_int * ptr;
-	
-	ptr = (u_int *) page;
-
-
-	return (*ptr & 0xFFF);	//ID is in last twelve bits
-}
-
-/* Gets the page size stored in the prologue block
-	INPUT: void * to beginning of page
-	OUTPUT: the pageSize returned as a u_int 
-*/
-u_int getPageSize(void * page){
-	u_int * ptr;
-	u_int size;
-
-	ptr = (u_int *) page;
-	size = *ptr & 0xFFFF000; //size bits are in bits 12-27
-	size = size >> 12;	//Shift these bits into the right place
-	return size;
-}
-
-
-/* Sets the page's thread_id in the prologue block
-	INPUT: void * to beginning of page
-	OUTPUT: none 
-*/
-void setPageID(void * page, int thread_id){
-	u_int * ptr;
-	
-	ptr = (u_int *) page;
-
-	*ptr = *ptr & ~0xFFF;	//clears the lower twelve bits
-	*ptr = *ptr | thread_id;
-
-	return;
-}
-
-
-/* Sets the page's size in the prologue block
-	INPUT: void * to beginning of page
-	OUTPUT: none 
-*/
-void setPageSize(void * page, int new_size){
-	u_int * ptr;
-	
-	int page_id = getPageID(page);
-	
-	ptr = (u_int *) page;
-
-	*ptr = *ptr & 0x0;	//clears all bits
-	*ptr = new_size;	//sets the new size
-	*ptr = *ptr << 12;	//shifts bits over by 12
-	*ptr = *ptr | page_id;
-
-
-	return;
-}
 
 /* Creates a space in memory based on size, if available. Returns NULL if not
 	INPUT: size_t of the block to created
@@ -161,7 +114,7 @@ void * mymalloc(size_t size, char * b, int a){
 		// printf("WARNING. Zero size. Returning NULL Pointer at %s and line %d\n", b, a );
 		return NULL;
 	}
-	else if(size > MEMSIZE){
+	else if(size > USR_SIZE){
 		// printf("Warning: size exceeds memory size. Return null at %s and line %d\n", b,a);
 		return NULL;
 	}
@@ -210,8 +163,9 @@ void * mymalloc(size_t size, char * b, int a){
 
 char * findFit(int extendedSize){
 	char * ptr = (char *)currentPage;	//beginning of memory
-	ptr = ptr + (2 * HDRSIZE); 	//Move past prologue block and header
 	
+	ptr = ptr + (2 * HDRSIZE); 	//Move past prologue block and header
+	//TODO: ^^^^^^ELIMINATE^^^^^
 	//blockSize and allocated bit of the first block in memory
 	int blockSize  = getSize(ptr);
 	int allocBit = getAllocation(ptr);
@@ -243,10 +197,10 @@ void initialize(){
 
 	memBlock = (char *)currentPage;
 	setValue(memBlock,0,1); 	//Setting the prologue block
-	char * epilogue = memBlock + MEMSIZE - HDRSIZE;	//Get address of epilogue
+	char * epilogue = memBlock + USR_SIZE - HDRSIZE;	//Get address of epilogue
 	setValue(epilogue, 0, 1);	//Setting the epilogue block
 
-	int memorySize = MEMSIZE - (2 * HDRSIZE);	//Remaining memory size after prologue/epilogue
+	int memorySize = USR_SIZE - (2 * HDRSIZE);	//Remaining memory size after prologue/epilogue
 	//Setting value for one contiguous memory block
 	setValue((memBlock + HDRSIZE), memorySize, 0);	//Set Header
 	setValue((epilogue - HDRSIZE), memorySize, 0);	//Set footer
@@ -271,12 +225,12 @@ void myfree(void * ptr, char * b, int a){
 	}
 
 	int relativeAddress = (char*)(ptr) - (char*)currentPage;
-	/*
+	
 	if (relativeAddress > sizeof(myBlock) - 2*HDRSIZE || relativeAddress < HDRSIZE){
 		// printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
 		return;
 	}
-	*/
+	
 
 	if (getAllocation(ptr) == 0){
 		//printf("Can not free an already free block in %s line %d\n", __FILE__, __LINE__);
@@ -466,29 +420,7 @@ char * createExtremities(char * p, int size, int allocated){
 }
 
 
-void loadPages(){
-	int i;
-	//Load first 5 pages
-	for(i = 0; i < 5; i++){
-		pages[i] = memory + (i * pageSize);
-	}
-	//Protect last 5 pages
-	while (i < 10){
-		mprotect(memory + (i * pageSize), pageSize, PROT_NONE);
-		i++;
-	}
 
-	i = 5;
-	while (i < 10){
-		mprotect(memory + (i * pageSize), pageSize, PROT_WRITE);
-		i++;
-	}
-	//Try to load something into page 7. Should succeed
-	char * newptr = (char *)(memory + (7*pageSize));
-	*newptr = 'a';
-	printf("This line should run\n");
-
-}
 
 /*
 
