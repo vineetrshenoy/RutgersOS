@@ -96,7 +96,7 @@ void initializeMemory(){
 	OUTPUT: The char pointer of the available space in memory; NULL if no place
 	This also initializes the header and footer.
 */
-void * mymalloc(size_t size, char * b, int a){
+void * myallocate(size_t size, char * b, int a, int id){
 	size_t extendedSize;
 	char * ptr;
 	char *headerPointer;
@@ -105,6 +105,7 @@ void * mymalloc(size_t size, char * b, int a){
 	
 	if (memoryInitialized == 0){
 		initializeMemory();
+		initializeScheduler();
 		memoryInitialized = 1;
 	}
 
@@ -160,8 +161,8 @@ void * mymalloc(size_t size, char * b, int a){
 	OUTPUT: The char pointer of the available space in memory; NULL if no place
 */
 
-char * findFit(int extendedSize){
-	char * ptr = (char *)currentPage;	//beginning of memory
+void * findFit(int extendedSize){
+	void * ptr = (void *)currentPage;	//beginning of memory
 	
 	ptr = ptr + (2 * HDRSIZE); 	//Move past prologue block and header
 	//TODO: ^^^^^^ELIMINATE^^^^^
@@ -213,7 +214,7 @@ void initialize(){
 	OUTPUT: None
 */
 
-void myfree(void * ptr, char * b, int a){
+void mydeallocate(void * ptr, char * b, int a){
 	char *  next;
 	char * previous;
 	int size;
@@ -251,9 +252,9 @@ void myfree(void * ptr, char * b, int a){
 	INPUT: The char pointer pointing to the block we want to free
 	OUTPUT: None
 */
-void coalesce(char * ptr){
-	char * previous;
-	char * next;
+void coalesce(void * ptr){
+	void * previous;
+	void * next;
 	int allocPrevious, allocNext, size;
 
 	previous  = getPrevious(ptr);

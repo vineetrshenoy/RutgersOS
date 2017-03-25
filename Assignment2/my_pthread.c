@@ -8,10 +8,12 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "mymalloc.h"
 #include "my_pthread_t.h"
 
 #define STACK_SIZE 100000
+#define MAXTHREADS 128
 
 ucontext_t ucp, ucp_two, ucp_main;
 
@@ -21,7 +23,8 @@ int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
-
+int16_t ** pageTables = NULL;
+int16_t * masterTable = NULL;
 my_pthread_t current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
@@ -34,6 +37,39 @@ void timer_handler (int signum){
 	my_pthread_yield();
 }
 
+
+
+void initializeScheduler(){
+	//If this is the first time calling my_pthread_create()
+	if (isInitialized == 0){
+		isInitialized = 1;	//change isInitialized flag
+		int i = 0;
+		//creating the page tables
+		pageTables = (int16_t **) malloc(MAXTHREADS * sizeof(int16_t *));
+		for (i = 0; i < MAXTHREADS; i++){
+			pageTables[i] = (int16_t *) malloc(5632 * sizeof(int16_t));
+		}
+		
+
+		my_pthread_t mainThread = malloc(sizeof(struct my_pthread_t)); //malloc space for the my_pthread struct
+		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
+		mainThread->thread_id = 0;	//Zero will always be thread id for main
+		getcontext(mainThread->context);	//Saves the current context of main
+		mainThread->state = ACTIVE;	//Sets thread to active stat
+		current = mainThread;
+		queue_node *main_node = malloc(sizeof(queue_node));
+		main_node->thread = mainThread;
+		main_node->priority = 1;
+		main_node->join_value = NULL;
+		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+	}
+
+
+
+
+
+
+}
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
@@ -66,21 +102,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	new_node->join_value = NULL;
 	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
 	
-			//If this is the first time calling my_pthread_create()
-	if (isInitialized == 0){
-		isInitialized = 1;	//change isInitialized flag
-		my_pthread_t mainThread = malloc(sizeof(struct my_pthread_t)); //malloc space for the my_pthread struct
-		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
-		mainThread->thread_id = 0;	//Zero will always be thread id for main
-		getcontext(mainThread->context);	//Saves the current context of main
-		mainThread->state = ACTIVE;	//Sets thread to active stat
-		current = mainThread;
-		queue_node *main_node = malloc(sizeof(queue_node));
-		main_node->thread = mainThread;
-		main_node->priority = 1;
-		main_node->join_value = NULL;
-		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
-	}
+			
 
 
 

@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+
+
 typedef enum {
 	ACTIVE,
 	WAITING,
@@ -96,6 +98,8 @@ queue_node* peek(queue_node * tail);
 void printQueue(queue_node *tail);
 queue_node * search_pq();
 int search_wq();
+
+void initializeScheduler();
 
 
 
