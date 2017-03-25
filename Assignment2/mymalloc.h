@@ -5,7 +5,7 @@ void * getFooter(void * p);
 int getSize(void * headerPointer);
 int getAllocation(void * p);
 char * createExtremities(char * p, int size, int allocated);
-void mydeallocate(void * ptr, char * b, int a);
+void mydeallocate(void * ptr, char * b, int a, int id);
 void setValue(void * p, int size, int allocation);
 void * getNext(void * ptr);
 void * getPrevious(void * ptr);

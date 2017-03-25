@@ -17,8 +17,7 @@
 
 static void * memory;
 static char myBlock[5000];
-void * currentPage;
-int OS_SIZE = 0;;
+int OS_SIZE = 0;
 int USR_SIZE = 6 * (2^20);
 int memoryInitialized = 0;
 int pageSize = 0;
@@ -105,7 +104,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 	
 	if (memoryInitialized == 0){
 		initializeMemory();
-		initializeScheduler();
+		//initializeScheduler();
 		memoryInitialized = 1;
 	}
 
@@ -162,9 +161,9 @@ void * myallocate(size_t size, char * b, int a, int id){
 */
 
 void * findFit(int extendedSize){
-	void * ptr = (void *)currentPage;	//beginning of memory
+	void * ptr = (void *)memory;	//beginning of memory
 	
-	ptr = ptr + (2 * HDRSIZE); 	//Move past prologue block and header
+	ptr = ptr + (HDRSIZE); 	//Move past prologue block and header
 	//TODO: ^^^^^^ELIMINATE^^^^^
 	//blockSize and allocated bit of the first block in memory
 	int blockSize  = getSize(ptr);
@@ -195,7 +194,7 @@ void * findFit(int extendedSize){
 void initialize(){
 	char * memBlock;
 
-	memBlock = (char *)currentPage;
+	memBlock = (char *)memory;
 	setValue(memBlock,0,1); 	//Setting the prologue block
 	char * epilogue = memBlock + USR_SIZE - HDRSIZE;	//Get address of epilogue
 	setValue(epilogue, 0, 1);	//Setting the epilogue block
@@ -214,26 +213,26 @@ void initialize(){
 	OUTPUT: None
 */
 
-void mydeallocate(void * ptr, char * b, int a){
+void mydeallocate(void * ptr, char * b, int a, int id){
 	char *  next;
 	char * previous;
 	int size;
 	
 	if (ptr == NULL){
-		// printf("Unable to free a NULL pointer in %s line  %d \n",b,a);
+		printf("Unable to free a NULL pointer in %s line  %d \n",b,a);
 		return;
 	}
 
-	int relativeAddress = (char*)(ptr) - (char*)currentPage;
+	int relativeAddress = (ptr) - memory;
 	
-	if (relativeAddress > sizeof(myBlock) - 2*HDRSIZE || relativeAddress < HDRSIZE){
-		// printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
+	if (relativeAddress > (OS_SIZE + USR_SIZE) - 2*HDRSIZE || relativeAddress < HDRSIZE){
+		printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
 		return;
 	}
 	
 
 	if (getAllocation(ptr) == 0){
-		//printf("Can not free an already free block in %s line %d\n", __FILE__, __LINE__);
+		printf("Can not free an already free block in %s line %d\n", __FILE__, __LINE__);
 	}
 
 	//Gets the size and allocated bit
