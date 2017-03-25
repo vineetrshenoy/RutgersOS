@@ -17,6 +17,7 @@
 
 static void * memory;
 static char myBlock[5000];
+void * whichMemory;
 int OS_SIZE = 0;
 int USR_SIZE = 6 * (2^20);
 int memoryInitialized = 0;
@@ -35,7 +36,7 @@ void initializeMemory(){
 		USR_SIZE = pow(2,20) * 6;
 		memoryInitialized = 1;
 		pageSize = sysconf(_SC_PAGESIZE);	//get the page size of this system
-		error = posix_memalign(&memory, pageSize, pow(2,23)); // Create memory that is size of 10 pages
+		error = posix_memalign(&memory, pageSize, pow(2,24)); // Create memory that is size of 10 pages
 		if (error != 0){
 			printf("Error Allocating 8MB memory\n");
 			return;
@@ -117,6 +118,12 @@ void * myallocate(size_t size, char * b, int a, int id){
 		// printf("Warning: size exceeds memory size. Return null at %s and line %d\n", b,a);
 		return NULL;
 	}
+	/*
+	if (id == 5)
+		whichMemory = memory;
+	else
+		whichMemory = memory + OS_SIZE;
+	*/
 
 	//Adjustment for overhead and alignment
 	adjustedSize = (HDRSIZE - (size % HDRSIZE)) % HDRSIZE;
@@ -161,7 +168,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 */
 
 void * findFit(int extendedSize){
-	void * ptr = (void *)memory;	//beginning of memory
+	void * ptr = (void *)(memory + OS_SIZE);	//beginning of memory
 	
 	ptr = ptr + (HDRSIZE); 	//Move past prologue block and header
 	//TODO: ^^^^^^ELIMINATE^^^^^
@@ -223,7 +230,7 @@ void mydeallocate(void * ptr, char * b, int a, int id){
 		return;
 	}
 
-	int relativeAddress = (ptr) - memory;
+	int relativeAddress = (ptr) - (memory+ OS_SIZE);
 	
 	if (relativeAddress > (OS_SIZE + USR_SIZE) - 2*HDRSIZE || relativeAddress < HDRSIZE){
 		printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
