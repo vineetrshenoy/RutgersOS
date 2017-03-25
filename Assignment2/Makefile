@@ -2,10 +2,13 @@
 
 CC = gcc
 CFLAGS = -Wall -g
-OBJS = my_pthread.o mymalloc.o
+OBJS = main.o my_pthread.o mymalloc.o
 
 manager: $(OBJS)
 	$(CC) -g -o manager $(OBJS) 
+
+main.o: main.c
+	$(CC) -c -g main.c 
 
 my_pthread.o: my_pthread.c my_pthread_t.h
 	$(CC) -c -g my_pthread.c 

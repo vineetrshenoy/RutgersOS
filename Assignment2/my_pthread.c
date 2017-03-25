@@ -593,18 +593,19 @@ void handler(int sig){
 	setcontext(&ucp_main);
 }
 
-/*
 
+/*
 int main(){
 
+	
 	my_pthread_t *thread;
 	my_pthread_t *thread2;
 	my_pthread_create(thread, NULL, &counterFunction, NULL);
 	my_pthread_create(thread2, NULL, &printFunction, NULL);
 	my_pthread_join(*thread2, NULL);
-	my_pthread_yield();*/
+	my_pthread_yield();
 
-	/*
+	
 	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
 	my_pthread_t * thread2 = malloc(sizeof(my_pthread_t));
@@ -619,10 +620,13 @@ int main(){
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
-*/
 
 
-/*
+
+
 	printf("Ending main\n");
+	
 	return 0;
-}*/
+
+}
+*/
