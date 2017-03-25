@@ -1,0 +1,17 @@
+void test();
+void memvoid();
+void * getHeader(void * p);
+void * getFooter(void * p);
+int getSize(void * headerPointer);
+int getAllocation(void * p);
+char * createExtremities(char * p, int size, int allocated);
+void myfree(void * ptr, char * b, int a);
+void setValue(void * p, int size, int allocation);
+void * getNext(void * ptr);
+void * getPrevious(void * ptr);
+void initialize();
+char * findFit(int extendedSize);
+void * mymalloc(size_t size, char * b, int a);
+void coalesce(char * ptr);
+void initializeMemory();
+void initializePage();
