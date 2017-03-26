@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <math.h>
 #include "mymalloc.h"
+#include "my_pthread_t.h"
 
 
 #define HDRSIZE 4
@@ -22,6 +23,8 @@ int OS_SIZE = 0;
 int USR_SIZE = 6 * (2^20);
 int memoryInitialized = 0;
 int pageSize = 0;
+int fileDescriptor;
+int buffer[1024];
 
 
 /* Initializes the 8MB memory as well as all the pages in memory
@@ -44,7 +47,6 @@ void initializeMemory(){
 
 		/*
 		**** SETTING THE OS REGION OF MEMORY ****
-
 		*/
 		//Keeping last 4 bytes of OS REGION as footer
 		ptr = (int *) memory;
@@ -70,7 +72,6 @@ void initializeMemory(){
 
 		/*
 		**** SETTING THE USER REGION OF MEMORY ****
-
 		*/
 		ptr = (int *) memory;
 		ptr = ptr + OS_SIZE/4; // Gets us to the beginning of user space
@@ -84,6 +85,12 @@ void initializeMemory(){
 		ptr = ptr - HDRSIZE/4; //move back four bytes for the footer
 		*ptr = USR_SIZE; //Puts the user memory size as a header
 		*ptr = *ptr << 1; //Moves over by one so that zero in the last place
+
+	// create swap file
+	fileDescriptor = open("swapfile.txt", O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
+	for (i = 0; i < 16*1024; i++) {
+		write(fileDescriptor, buffer, 1024);
+	}
 }
 
 
@@ -430,13 +437,49 @@ char * createExtremities(char * p, int size, int allocated){
 	return p;
 }
 
+void swap_in(int16_t newPage, int des) {
+	void *pagePtr, *desPtr;
+	desPtr = memory + OS_SIZE + des*pageSize;
+	if (newPage < MEMORYPAGES) {
+		pagePtr = memory + OS_SIZE + newPage*pageSize;
+		memcpy(desPtr, pagePtr, pageSize);
+		memset(pagePtr, 0, pageSize);
+		mprotect(pagePtr, pageSize, PROT_NONE);
+	}
+	else if (newPage < TOTALPAGES) {
+		newPage -= MEMORYPAGES;
+		lseek(fileDescriptor, newPage*pageSize, SEEK_SET);
+		read(fileDescriptor, desPtr, pageSize);
+	}
+	mprotect(desPtr, pageSize, PROT_NONE);
+}
+
+int16_t swap_out(int16_t page) {
+	void *pagePtr, *desPtr;
+	int16_t freePage = nextFreePage();
+	pagePtr = memory + OS_SIZE + page*pageSize;
+	if (freePage < MEMORYPAGES) {
+		desPtr = memory + OS_SIZE + freePage*pageSize;
+		memcpy(desPtr, pagePtr, pageSize);
+		mprotect(desPtr, pageSize, PROT_READ|PROT_WRITE);
+	}
+	else if (freePage < TOTALPAGES) {
+		freePage -= MEMORYPAGES;
+		lseek(fileDescriptor, freePage*pageSize, SEEK_SET);
+		write(fileDescriptor, pagePtr, pageSize);
+	}
+	else {
+		return 6969;
+	}
+	memset(pagePtr, 0, pageSize);
+	mprotect(pagePtr, pageSize, PROT_NONE);
+}
+
 
 
 
 /*
-
 int main(){
-
 	
 	initializeMemory();
 	setPageID(memory, 42);
@@ -445,7 +488,6 @@ int main(){
 	/*
 	int i;	
 	char * array = (char *) mymalloc(sizeof(char) * 10);
-
 	for(i = 0; i < 5; i++){
 		pages[i] = memory + (i * pageSize);
 	}
@@ -457,4 +499,3 @@ int main(){
 
  
   
-
