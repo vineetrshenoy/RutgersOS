@@ -45,19 +45,19 @@ void initializeScheduler(){
 		isInitialized = 1;	//change isInitialized flag
 		int i = 0;
 		//creating the page tables
-		pageTables = (int16_t **) malloc(MAXTHREADS * sizeof(int16_t *));
+		pageTables = (int16_t **) myallocate(MAXTHREADS * sizeof(int16_t *));
 		for (i = 0; i < MAXTHREADS; i++){
-			pageTables[i] = (int16_t *) malloc(5632 * sizeof(int16_t));
+			pageTables[i] = (int16_t *) myallocate(5632 * sizeof(int16_t));
 		}
 		
 
-		my_pthread_t mainThread = malloc(sizeof(struct my_pthread_t)); //malloc space for the my_pthread struct
-		mainThread->context = (ucontext_t *) malloc(sizeof(ucontext_t));	//malloc space for main contex
+		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t)); //myallocate space for the my_pthread struct
+		mainThread->context = (ucontext_t *) myallocate(sizeof(ucontext_t));	//myallocate space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
 		current = mainThread;
-		queue_node *main_node = malloc(sizeof(queue_node));
+		queue_node *main_node = myallocate(sizeof(queue_node));
 		main_node->thread = mainThread;
 		main_node->priority = 1;
 		main_node->join_value = NULL;
@@ -76,8 +76,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 
 	// ------VINEET'S CODE ----
-	*thread = malloc(sizeof(struct my_pthread_t)); //Malloc space for new thread
-	(*thread)->context = (ucontext_t *) malloc(sizeof(ucontext_t)); 	//Also malloc space for ucontext
+	*thread = myallocate(sizeof(struct my_pthread_t)); //myallocate space for new thread
+	(*thread)->context = (ucontext_t *) myallocate(sizeof(ucontext_t)); 	//Also myallocate space for ucontext
 
 	//Get context to initialize new thread
 	if(getcontext((*thread)->context) == -1){
@@ -86,7 +86,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	}
 
 	ucontext_t * newContext = (*thread)->context;
-	(*newContext).uc_stack.ss_sp = malloc(STACK_SIZE);	//mallocs new stack space
+	(*newContext).uc_stack.ss_sp = myallocate(STACK_SIZE);	//myallocates new stack space
 	(*newContext).uc_stack.ss_size = STACK_SIZE;	//describes size of stack
 	(*newContext).uc_link = NULL;
 	
@@ -96,7 +96,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	(*thread)->state = ACTIVE;	//Sets thread to active stat
 
 	makecontext((*thread)->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_node *new_node = malloc(sizeof(queue_node));
+	queue_node *new_node = myallocate(sizeof(queue_node));
 	new_node->thread = *thread;
 	new_node->priority = 1;
 	new_node->join_value = NULL;
@@ -324,8 +324,8 @@ void my_pthread_exit(void * value_ptr){
 			if (value_ptr != NULL) {
 				removed_node->thread->return_value = value_ptr;
 			}
-			// free(removed_node->thread);
-			free(removed_node);
+			// mydeallocate(removed_node->thread);
+			mydeallocate(removed_node);
 			check = 0;
 		}
 	}
@@ -339,8 +339,8 @@ void my_pthread_exit(void * value_ptr){
 		if (value_ptr != NULL) {
 			removed_node->thread->return_value = value_ptr;
 		}
-		// free(removed_node->thread);
-		free(removed_node);
+		// mydeallocate(removed_node->thread);
+		mydeallocate(removed_node);
 	}
 	// else if (current->thread_id == 0) {
 	// 	current->state = COMPLETED;
@@ -411,9 +411,9 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		*value_ptr = thread->return_value;
 	}
 
-	free(thread->context->uc_stack.ss_sp);
-	free(thread->context);
-	free(thread);
+	mydeallocate(thread->context->uc_stack.ss_sp);
+	mydeallocate(thread->context);
+	mydeallocate(thread);
 
 
 	// wait_queue = enqueue(node, wait_queue, &wait_size);
@@ -628,11 +628,11 @@ int main(){
 	my_pthread_yield();
 
 	
-	my_pthread_t * thread = malloc(sizeof(my_pthread_t));
+	my_pthread_t * thread = myallocate(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
-	my_pthread_t * thread2 = malloc(sizeof(my_pthread_t));
+	my_pthread_t * thread2 = myallocate(sizeof(my_pthread_t));
 	thread2->string = "this is the second thread";
-	my_pthread_t * thread3 = malloc(sizeof(my_pthread_t));
+	my_pthread_t * thread3 = myallocate(sizeof(my_pthread_t));
 	thread3->string = "this is the third thread";
 	queue_node * queue = NULL;
 	queue = enqueue(thread, queue, 0);
