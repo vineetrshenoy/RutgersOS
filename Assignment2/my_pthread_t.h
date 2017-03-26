@@ -12,10 +12,14 @@
 #include <sys/time.h>
 #include <stdint.h>	
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define THREADREQ 999
 #define TOTALPAGES 5632
 #define MEMORYPAGES 1536
+#define MAXTHREADS 128
 #define malloc(x) myallocate(x,__FILE__,__LINE__, THREADREQ)
 #define free(x)  mydeallocate(x,__FILE__,__LINE__, THREADREQ)
 

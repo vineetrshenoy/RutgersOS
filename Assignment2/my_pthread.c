@@ -13,7 +13,7 @@
 #include "my_pthread_t.h"
 
 #define STACK_SIZE 100000
-#define MAXTHREADS 128
+
 
 
 ucontext_t ucp, ucp_two, ucp_main;
@@ -39,23 +39,6 @@ void timer_handler (int signum){
 	my_pthread_yield();
 }
 
-
-static void handler(int sig, siginfo_t *si, void *unused){
-	printf("Got SIGSEGV at address: 0x%lx\n",(long) si->si_addr);
-}
-
-void install_sig_seg_handler(){
-	struct sigaction sa;
-	sa.sa_flags = SA_SIGINFO;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = handler;
-    if (sigaction(SIGSEGV, &sa, NULL) == -1){
-    	printf("Fatal error setting up signal handler\n");
-        exit(EXIT_FAILURE);    //explode!
-    }
-            
-        
-}
 
 
 void initializeScheduler(){
@@ -98,7 +81,8 @@ void initializeScheduler(){
 }
 
 int16_t nextFreePage() {
-	for (int16_t i = 0; i < TOTALPAGES; i++) {
+	int16_t i;
+	for (i = 0; i < TOTALPAGES; i++) {
 		if (masterTable[i] == '0') {
 			return i;
 		}
@@ -237,7 +221,7 @@ void my_pthread_yield(){
 			i = 0;
 			while(pageTables[temp->thread_id][i]) {
 				newAddr = swap_out((int16_t) i);
-				masterTable[i] = '0'
+				masterTable[i] = '0';
 				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
@@ -304,7 +288,7 @@ void my_pthread_yield(){
 			i = 0;
 			while(pageTables[temp->thread_id][i]) {
 				newAddr = swap_out((int16_t) i);
-				masterTable[i] = '0'
+				masterTable[i] = '0';
 				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
@@ -402,7 +386,7 @@ void my_pthread_yield(){
 				i = 0;
 				while(pageTables[temp->thread_id][i]) {
 					newAddr = swap_out((int16_t) i);
-					masterTable[i] = '0'
+					masterTable[i] = '0';
 					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;
@@ -462,7 +446,7 @@ void my_pthread_yield(){
 				i = 0;
 				while(pageTables[temp->thread_id][i]) {
 					newAddr = swap_out((int16_t) i);
-					masterTable[i] = '0'
+					masterTable[i] = '0';
 					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;

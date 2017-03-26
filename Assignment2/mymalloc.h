@@ -17,3 +17,5 @@ void initializeMemory();
 void initializePage();
 void swap_in(int16_t newPage, int des);
 int16_t swap_out(int16_t page);
+static void seg_handler(int sig, siginfo_t * si, void * unused);
+void install_seg_handler();

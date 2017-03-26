@@ -5,15 +5,13 @@
 #include <sys/mman.h>
 #include <math.h>
 #include <stdint.h>
+#include <signal.h>
 #include "mymalloc.h"
 #include "my_pthread_t.h"
 
 
 #define HDRSIZE 4
 
-
-#define malloc(x) mymymalloc(x,__LINE__,__FILE__)
-#define free(x) myfree(x,__LINE__,__FILE__)
 
 
 
@@ -31,23 +29,43 @@ extern char * masterTable;
 extern my_pthread_t current;
 
 
-static void handler(int sig, siginfo_t * si, void * unused){
+
+
+void install_seg_handler(){
+	struct sigaction sa;
+	sa.sa_flags = SA_SIGINFO;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = seg_handler;
+
+	if (sigaction(SIGSEGV, &sa, NULL) == -1){
+		printf("Fatal error setting up signal handler\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void seg_handler(int sig, siginfo_t * si, void * unused){
 	printf("Got SIGSEGV at address 0x%lx\n", (long) si->si_addr);
 
 	int16_t offset = si->si_addr - memory - OS_SIZE;
 	int i = 0;
 	for (i = 0; i < MAXTHREADS; i++){
+		
+		int j = 0;
+
 		while (pageTables[i][j]){
 
-			if(pageTables[i][j] == offset){
+			if(pageTables[i][j] == (int16_t) offset){
 				int newAddr = swap_out((int16_t) offset);
 				masterTable[offset] = '0';
-				pageTables[i][j] = newAddr;
+				pageTables[i][j] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
-				pageTables[current->thread_id][offset] = offset;
+				pageTables[current->thread_id][offset] = (int16_t) offset;
 				masterTable[offset] = '1';
 
 			}
+
+			j++;
+
 		}
 
 
@@ -57,22 +75,6 @@ static void handler(int sig, siginfo_t * si, void * unused){
 
 
 }	
-
-
-
-
-void install_seg_handler(){
-	struct sigaction sa;
-	sa.sa_flags = SA_SIGINFO;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_sigaction = handler;
-
-	if (sigaction(SIGSEGV, &sa, NULL) == -1){
-		printf("Fatal error setting up signal handler\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
 
 
 /* Initializes the 8MB memory as well as all the pages in memory
