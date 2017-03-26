@@ -13,8 +13,6 @@
 #define BILLION 1000000000L
 
 
-#define malloc(x) myallocate(x,__FILE__,__LINE__, 999)
-#define free(x)  mydeallocate(x,__FILE__,__LINE__, 999)
 
 
 

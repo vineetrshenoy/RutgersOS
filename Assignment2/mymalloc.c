@@ -118,12 +118,12 @@ void * myallocate(size_t size, char * b, int a, int id){
 		// printf("Warning: size exceeds memory size. Return null at %s and line %d\n", b,a);
 		return NULL;
 	}
-	/*
-	if (id == 5)
-		whichMemory = memory;
-	else
+	
+	if (id == 999)
 		whichMemory = memory + OS_SIZE;
-	*/
+	else
+		whichMemory = memory;
+	
 
 	//Adjustment for overhead and alignment
 	adjustedSize = (HDRSIZE - (size % HDRSIZE)) % HDRSIZE;
@@ -168,7 +168,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 */
 
 void * findFit(int extendedSize){
-	void * ptr = (void *)(memory + OS_SIZE);	//beginning of memory
+	void * ptr = (void *)whichMemory;	//beginning of memory
 	
 	ptr = ptr + (HDRSIZE); 	//Move past prologue block and header
 	//TODO: ^^^^^^ELIMINATE^^^^^
@@ -230,7 +230,12 @@ void mydeallocate(void * ptr, char * b, int a, int id){
 		return;
 	}
 
-	int relativeAddress = (ptr) - (memory+ OS_SIZE);
+	if (id == 999)
+		whichMemory = memory + OS_SIZE;
+	else
+		whichMemory = memory;
+
+	int relativeAddress = (ptr) - whichMemory;
 	
 	if (relativeAddress > (OS_SIZE + USR_SIZE) - 2*HDRSIZE || relativeAddress < HDRSIZE){
 		printf("Not a freeable memory address in %s line  %d \n",__FILE__,__LINE__);
