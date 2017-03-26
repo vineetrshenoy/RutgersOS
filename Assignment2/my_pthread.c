@@ -33,6 +33,7 @@ queue_node * wait_queue = NULL;
 int priority1_size = 0;
 int priority2_size = 0;
 int wait_size = 0;
+extern int fileDescriptor;
 
 void timer_handler (int signum){
 	my_pthread_yield();
@@ -200,7 +201,9 @@ void my_pthread_yield(){
 			// }
 			i = 0;
 			while(pageTables[current_thread->thread_id][i]) {
-				swap_in(pageTables[current_thread->thread_id][i], i);
+				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+					swap_in(pageTables[current_thread->thread_id][i], i);
+				}
 				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
 					masterTable[pageTables[current_thread->thread_id][i]] = '0';
 				}
@@ -208,11 +211,13 @@ void my_pthread_yield(){
 				masterTable[i] = '1';
 				i++;
 			}
-			swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			}
 			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
 			}
-			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '1';
 			setcontext(current_thread->context);
 		}else if (current->thread_id != current_thread->thread_id){
@@ -233,17 +238,19 @@ void my_pthread_yield(){
 			while(pageTables[temp->thread_id][i]) {
 				newAddr = swap_out((int16_t) i);
 				masterTable[i] = '0'
-				pageTables[temp->thread_id][i] = newAddr;
+				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
 			}
 			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '0';
-			pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+			pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 			masterTable[newAddr] = '1';
 			i = 0;
 			while(pageTables[current_thread->thread_id][i]) {
-				swap_in(pageTables[current_thread->thread_id][i], i);
+				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+					swap_in(pageTables[current_thread->thread_id][i], i);
+				}
 				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
 					masterTable[pageTables[current_thread->thread_id][i]] = '0';
 				}
@@ -251,11 +258,13 @@ void my_pthread_yield(){
 				masterTable[i] = '1';
 				i++;
 			}
-			swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			}
 			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
 			}
-			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '1';
 			swapcontext(temp->context, current_thread->context);
 		}else{
@@ -296,17 +305,19 @@ void my_pthread_yield(){
 			while(pageTables[temp->thread_id][i]) {
 				newAddr = swap_out((int16_t) i);
 				masterTable[i] = '0'
-				pageTables[temp->thread_id][i] = newAddr;
+				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
 			}
 			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '0';
-			pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+			pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 			masterTable[newAddr] = '1';
 			i = 0;
 			while(pageTables[next_thread->thread_id][i]) {
-				swap_in(pageTables[next_thread->thread_id][i], i);
+				if (pageTables[next_thread->thread_id][i] != (int16_t) i) {
+					swap_in(pageTables[next_thread->thread_id][i], i);
+				}
 				if (pageTables[next_thread->thread_id][i] < MEMORYPAGES) {
 					masterTable[pageTables[next_thread->thread_id][i]] = '0';
 				}
@@ -314,11 +325,13 @@ void my_pthread_yield(){
 				masterTable[i] = '1';
 				i++;
 			}
-			swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) {
+				swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			}
 			if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 				masterTable[pageTables[next_thread->thread_id][MEMORYPAGES - 1]] = '0';
 			}
-			pageTables[next_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			pageTables[next_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '1';
 			swapcontext(temp->context, next_thread->context);
 		}
@@ -353,7 +366,9 @@ void my_pthread_yield(){
 				// }
 				i = 0;
 				while(pageTables[current_thread->thread_id][i]) {
-					swap_in(pageTables[current_thread->thread_id][i], i);
+					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+						swap_in(pageTables[current_thread->thread_id][i], i);
+					}
 					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
 						masterTable[pageTables[current_thread->thread_id][i]] = '0';
 					}
@@ -361,11 +376,13 @@ void my_pthread_yield(){
 					masterTable[i] = '1';
 					i++;
 				}
-				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+					swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				}
 				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
 				}
-				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '1';
 				setcontext(current_thread->context);
 			}else if (current->thread_id != current_thread->thread_id){
@@ -386,17 +403,19 @@ void my_pthread_yield(){
 				while(pageTables[temp->thread_id][i]) {
 					newAddr = swap_out((int16_t) i);
 					masterTable[i] = '0'
-					pageTables[temp->thread_id][i] = newAddr;
+					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;
 				}
 				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '0';
-				pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+				pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i = 0;
 				while(pageTables[current_thread->thread_id][i]) {
-					swap_in(pageTables[current_thread->thread_id][i], i);
+					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+						swap_in(pageTables[current_thread->thread_id][i], i);
+					}
 					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
 						masterTable[pageTables[current_thread->thread_id][i]] = '0';
 					}
@@ -404,11 +423,13 @@ void my_pthread_yield(){
 					masterTable[i] = '1';
 					i++;
 				}
-				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+					swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				}
 				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
 				}
-				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '1';
 				swapcontext(temp->context, current_thread->context);
 			}else{
@@ -442,17 +463,19 @@ void my_pthread_yield(){
 				while(pageTables[temp->thread_id][i]) {
 					newAddr = swap_out((int16_t) i);
 					masterTable[i] = '0'
-					pageTables[temp->thread_id][i] = newAddr;
+					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;
 				}
 				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '0';
-				pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+				pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i = 0;
 				while(pageTables[next_thread->thread_id][i]) {
-					swap_in(pageTables[next_thread->thread_id][i], i);
+					if (pageTables[next_thread->thread_id][i] != (int16_t) i) {
+						swap_in(pageTables[next_thread->thread_id][i], i);
+					}
 					if (pageTables[next_thread->thread_id][i] < MEMORYPAGES) {
 						masterTable[pageTables[next_thread->thread_id][i]] = '0';
 					}
@@ -460,11 +483,13 @@ void my_pthread_yield(){
 					masterTable[i] = '1';
 					i++;
 				}
-				swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) {
+					swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				}
 				if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
 					masterTable[pageTables[next_thread->thread_id][MEMORYPAGES - 1]] = '0';
 				}
-				pageTables[next_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				pageTables[next_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '1';
 				swapcontext(temp->context, next_thread->context);
 			}
@@ -568,6 +593,9 @@ void my_pthread_exit(void * value_ptr){
 		masterTable[pageTables[current->thread_id][i]] = '0';
 	}
 	masterTable[MEMORYPAGES - 1] = '0';
+	if (current->thread_id == 0) {
+		close(fileDescriptor);
+	}
 	printf("exiting thread: %d\n", current->thread_id);
 	current = NULL;
 	my_pthread_yield();
