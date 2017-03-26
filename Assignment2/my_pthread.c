@@ -45,19 +45,19 @@ void initializeScheduler(){
 		isInitialized = 1;	//change isInitialized flag
 		int i = 0;
 		//creating the page tables
-		pageTables = (int16_t **) myallocate(MAXTHREADS * sizeof(int16_t *));
+		pageTables = (int16_t **) myallocate(MAXTHREADS * sizeof(int16_t *),__FILE__,__LINE__, 69);
 		for (i = 0; i < MAXTHREADS; i++){
-			pageTables[i] = (int16_t *) myallocate(5632 * sizeof(int16_t));
+			pageTables[i] = (int16_t *) myallocate(5632 * sizeof(int16_t),__FILE__,__LINE__, 69);
 		}
 		
 
-		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t)); //myallocate space for the my_pthread struct
-		mainThread->context = (ucontext_t *) myallocate(sizeof(ucontext_t));	//myallocate space for main contex
+		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for the my_pthread struct
+		mainThread->context = (ucontext_t *) myallocate(sizeof(ucontext_t),__FILE__,__LINE__, 69);	//myallocate space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
 		current = mainThread;
-		queue_node *main_node = myallocate(sizeof(queue_node));
+		queue_node *main_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
 		main_node->thread = mainThread;
 		main_node->priority = 1;
 		main_node->join_value = NULL;
@@ -76,8 +76,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 
 	// ------VINEET'S CODE ----
-	*thread = myallocate(sizeof(struct my_pthread_t)); //myallocate space for new thread
-	(*thread)->context = (ucontext_t *) myallocate(sizeof(ucontext_t)); 	//Also myallocate space for ucontext
+	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
+	(*thread)->context = (ucontext_t *) myallocate(sizeof(ucontext_t),__FILE__,__LINE__, 69); 	//Also myallocate space for ucontext
 
 	//Get context to initialize new thread
 	if(getcontext((*thread)->context) == -1){
@@ -86,7 +86,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	}
 
 	ucontext_t * newContext = (*thread)->context;
-	(*newContext).uc_stack.ss_sp = myallocate(STACK_SIZE);	//myallocates new stack space
+	(*newContext).uc_stack.ss_sp = myallocate(STACK_SIZE,__FILE__,__LINE__, 69);	//myallocates new stack space
 	(*newContext).uc_stack.ss_size = STACK_SIZE;	//describes size of stack
 	(*newContext).uc_link = NULL;
 	
@@ -96,7 +96,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	(*thread)->state = ACTIVE;	//Sets thread to active stat
 
 	makecontext((*thread)->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_node *new_node = myallocate(sizeof(queue_node));
+	queue_node *new_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
 	new_node->thread = *thread;
 	new_node->priority = 1;
 	new_node->join_value = NULL;
@@ -325,7 +325,7 @@ void my_pthread_exit(void * value_ptr){
 				removed_node->thread->return_value = value_ptr;
 			}
 			// mydeallocate(removed_node->thread);
-			mydeallocate(removed_node);
+			mydeallocate(removed_node,__FILE__,__LINE__, 69);
 			check = 0;
 		}
 	}
@@ -340,7 +340,7 @@ void my_pthread_exit(void * value_ptr){
 			removed_node->thread->return_value = value_ptr;
 		}
 		// mydeallocate(removed_node->thread);
-		mydeallocate(removed_node);
+		mydeallocate(removed_node,__FILE__,__LINE__, 69);
 	}
 	// else if (current->thread_id == 0) {
 	// 	current->state = COMPLETED;
@@ -411,9 +411,9 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		*value_ptr = thread->return_value;
 	}
 
-	mydeallocate(thread->context->uc_stack.ss_sp);
-	mydeallocate(thread->context);
-	mydeallocate(thread);
+	mydeallocate(thread->context->uc_stack.ss_sp,__FILE__,__LINE__, 69);
+	mydeallocate(thread->context,__FILE__,__LINE__, 69);
+	mydeallocate(thread,__FILE__,__LINE__, 69);
 
 
 	// wait_queue = enqueue(node, wait_queue, &wait_size);
