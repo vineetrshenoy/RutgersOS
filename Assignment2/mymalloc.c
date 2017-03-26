@@ -18,8 +18,8 @@
 static void * memory;
 static char myBlock[5000];
 void * whichMemory;
-int OS_SIZE = 0;
-int USR_SIZE = 6 * (2^20);
+int OS_SIZE = 5;
+int USR_SIZE = 5;
 int memoryInitialized = 0;
 int pageSize = 0;
 
