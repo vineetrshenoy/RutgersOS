@@ -23,6 +23,7 @@ queue_node * tail;
 int threadIDS = 1;
 int queueSize = 0;
 int isInitialized = 0;
+int mainEnqueued = 0;
 int totalThreads = 0;
 int16_t ** pageTables = NULL;
 char * masterTable = NULL;
@@ -34,6 +35,9 @@ int priority1_size = 0;
 int priority2_size = 0;
 int wait_size = 0;
 extern int fileDescriptor;
+extern int OS_SIZE;
+extern int pageSize;
+extern void * memory;
 
 void timer_handler (int signum){
 	my_pthread_yield();
@@ -42,6 +46,7 @@ void timer_handler (int signum){
 
 
 void initializeScheduler(){
+	void *ptr;
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
 		isInitialized = 1;	//change isInitialized flag
@@ -62,15 +67,15 @@ void initializeScheduler(){
 		getcontext(mainThread->context);	//Saves the current context of main
 		mainThread->state = ACTIVE;	//Sets thread to active stat
 		current = mainThread;
-		queue_node *main_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
-		main_node->thread = mainThread;
-		main_node->priority = 1;
-		main_node->join_value = NULL;
-		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+		
 		pageTables[0][0] = (int16_t) 0;
 		pageTables[0][MEMORYPAGES - 1] = (int16_t) MEMORYPAGES - 1;
 		masterTable[0] = '1';
 		masterTable[MEMORYPAGES - 1] = '1';
+		ptr = memory + OS_SIZE;
+		mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
+		ptr = memory + OS_SIZE + (MEMORYPAGES - 1)*pageSize;
+		mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
 	} 
 
 
@@ -92,6 +97,7 @@ int16_t nextFreePage() {
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
 	int16_t pageIndex, endIndex;
+	void *headerPtr, *footerPtr;
 
 	// ------VINEET'S CODE ----
 	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
@@ -119,7 +125,16 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	new_node->priority = 1;
 	new_node->join_value = NULL;
 	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
-	
+	if (mainEnqueued == 0){
+		mainEnqueued = 1;
+		queue_node *main_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
+		main_node->thread = current;
+		main_node->priority = 1;
+		main_node->join_value = NULL;
+		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+	}
+
+
 	pageIndex = nextFreePage();
 	pageTables[(*thread)->thread_id][0] = pageIndex;
 	masterTable[pageIndex] = '1';
@@ -128,10 +143,10 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	pageTables[(*thread)->thread_id][MEMORYPAGES - 1] = endIndex;
 	masterTable[endIndex] = '1';
 	createPageFooter(endIndex);
-
-
-
-	my_pthread_yield();
+	headerPtr = memory + OS_SIZE + pageIndex*pageSize;
+	mprotect(headerPtr, pageSize, PROT_NONE);
+	footerPtr = memory + OS_SIZE + (endIndex)*pageSize;
+	mprotect(footerPtr, pageSize, PROT_NONE);
 	return 0;
 
 }

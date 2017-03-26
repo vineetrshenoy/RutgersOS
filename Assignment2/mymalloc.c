@@ -14,8 +14,7 @@
 
 
 
-
-static void * memory;
+void * memory;
 static char myBlock[5000];
 void * whichMemory;
 int OS_SIZE = 5;
@@ -70,9 +69,6 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 
 
 	}
-
-
-
 
 }	
 
@@ -200,6 +196,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 	int oldSize, difference, adjustedSize;
 	
 	if (memoryInitialized == 0){
+		install_seg_handler();
 		initializeMemory();
 		initializeScheduler();
 		memoryInitialized = 1;
@@ -531,16 +528,17 @@ void swap_in(int16_t newPage, int des) {
 	desPtr = memory + OS_SIZE + des*pageSize;
 	if (newPage < MEMORYPAGES) {
 		pagePtr = memory + OS_SIZE + newPage*pageSize;
+		mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 		memcpy(desPtr, pagePtr, pageSize);
 		memset(pagePtr, 0, pageSize);
-		mprotect(pagePtr, pageSize, PROT_NONE);
+		
 	}
 	else if (newPage < TOTALPAGES) {
 		newPage -= MEMORYPAGES;
 		lseek(fileDescriptor, newPage*pageSize, SEEK_SET);
 		read(fileDescriptor, desPtr, pageSize);
 	}
-	mprotect(desPtr, pageSize, PROT_NONE);
+	mprotect(desPtr, pageSize, PROT_READ|PROT_WRITE);
 }
 
 int16_t swap_out(int16_t page) {
@@ -550,7 +548,7 @@ int16_t swap_out(int16_t page) {
 	if (freePage < MEMORYPAGES) {
 		desPtr = memory + OS_SIZE + freePage*pageSize;
 		memcpy(desPtr, pagePtr, pageSize);
-		mprotect(desPtr, pageSize, PROT_READ|PROT_WRITE);
+		mprotect(desPtr, pageSize, PROT_NONE);
 	}
 	else if (freePage < TOTALPAGES) {
 		freePage -= MEMORYPAGES;
@@ -561,7 +559,7 @@ int16_t swap_out(int16_t page) {
 		return 6969;
 	}
 	memset(pagePtr, 0, pageSize);
-	mprotect(pagePtr, pageSize, PROT_NONE);
+	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 }
 
 
