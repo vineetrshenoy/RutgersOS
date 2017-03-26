@@ -10,6 +10,7 @@
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <stdint.h>	
 #include <unistd.h>
 
 #define THREADREQ 999

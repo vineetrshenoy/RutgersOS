@@ -39,6 +39,23 @@ void timer_handler (int signum){
 }
 
 
+static void handler(int sig, siginfo_t *si, void *unused){
+	printf("Got SIGSEGV at address: 0x%lx\n",(long) si->si_addr);
+}
+
+void install_sig_seg_handler(){
+	struct sigaction sa;
+	sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = handler;
+    if (sigaction(SIGSEGV, &sa, NULL) == -1){
+    	printf("Fatal error setting up signal handler\n");
+        exit(EXIT_FAILURE);    //explode!
+    }
+            
+        
+}
+
 
 void initializeScheduler(){
 	//If this is the first time calling my_pthread_create()
