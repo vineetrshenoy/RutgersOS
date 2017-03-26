@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <math.h>
+#include <stdint.h>
 #include "mymalloc.h"
 #include "my_pthread_t.h"
 
@@ -94,8 +95,47 @@ void initializeMemory(){
 }
 
 
+void createPageHeader(int16_t offset){
 
+	int *headerPointer;
+	int header;
+	int adjustedSize = OS_SIZE - HDRSIZE;
+	if (offset < MEMORYPAGES) {
+		void * ptr = memory + OS_SIZE + (offset * pageSize);	// beginning of requested page
+		headerPointer = (int *)ptr;
+		*headerPointer = adjustedSize;
+		*headerPointer = *headerPointer << 1;
+	}
+	else {
+		
+		header = adjustedSize;
+		header = header << 1;
+		lseek(fileDescriptor, offset*pageSize, SEEK_SET);
+		write(fileDescriptor, &header, sizeof(headerPointer));
+	}
 
+}
+
+void createPageFooter(int16_t offset){
+	
+	int *headerPointer;
+	int header;
+	int adjustedSize = OS_SIZE - HDRSIZE;
+	if (offset < MEMORYPAGES) {
+		void * ptr = memory + OS_SIZE + (offset * pageSize);	// beginning of requested page
+		headerPointer = (int *)ptr;
+		*headerPointer = adjustedSize;
+		*headerPointer = *headerPointer << 1;
+	}
+	else {
+		
+		header = adjustedSize;
+		header = header << 1;
+		lseek(fileDescriptor, (offset + 1)*pageSize - HDRSIZE, SEEK_SET);
+		write(fileDescriptor, &header, sizeof(headerPointer));
+	}
+	
+}
 
 
 /* Creates a space in memory based on size, if available. Returns NULL if not
