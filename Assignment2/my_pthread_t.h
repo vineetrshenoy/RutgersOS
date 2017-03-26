@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdint.h>
+#include "mymalloc.h"
 
 #define THREADREQ 999
 #define TOTALPAGES 5632
