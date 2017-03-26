@@ -25,7 +25,7 @@ int USR_SIZE = 5;
 int memoryInitialized = 0;
 int pageSize = 0;
 int fileDescriptor;
-int buffer[1024];
+int buffer[256];
 extern int16_t ** pageTables;
 extern char * masterTable;
 extern my_pthread_t current;
