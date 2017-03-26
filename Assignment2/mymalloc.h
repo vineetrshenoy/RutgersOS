@@ -15,3 +15,5 @@ void * myallocate(size_t size, char * b, int a, int id);
 void coalesce(void * ptr);
 void initializeMemory();
 void initializePage();
+void swap_in(int16_t newPage, int des);
+int16_t swap_out(int16_t page);

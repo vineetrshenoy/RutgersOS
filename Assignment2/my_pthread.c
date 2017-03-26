@@ -15,6 +15,7 @@
 #define STACK_SIZE 100000
 #define MAXTHREADS 128
 
+
 ucontext_t ucp, ucp_two, ucp_main;
 
 struct itimerval timer;
@@ -24,7 +25,7 @@ int queueSize = 0;
 int isInitialized = 0;
 int totalThreads = 0;
 int16_t ** pageTables = NULL;
-int16_t * masterTable = NULL;
+char * masterTable = NULL;
 my_pthread_t current = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
@@ -47,9 +48,12 @@ void initializeScheduler(){
 		//creating the page tables
 		pageTables = (int16_t **) myallocate(MAXTHREADS * sizeof(int16_t *),__FILE__,__LINE__, 69);
 		for (i = 0; i < MAXTHREADS; i++){
-			pageTables[i] = (int16_t *) myallocate(5632 * sizeof(int16_t),__FILE__,__LINE__, 69);
+			pageTables[i] = (int16_t *) myallocate(TOTALPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
 		}
-		
+		masterTable = (char *) myallocate(TOTALPAGES*sizeof(char), __FILE__, __LINE__, 69);
+		for (i = 0; i < TOTALPAGES; i++) {
+			masterTable[i] = '0';
+		}
 
 		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for the my_pthread struct
 		mainThread->context = (ucontext_t *) myallocate(sizeof(ucontext_t),__FILE__,__LINE__, 69);	//myallocate space for main contex
@@ -62,7 +66,11 @@ void initializeScheduler(){
 		main_node->priority = 1;
 		main_node->join_value = NULL;
 		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
-	}
+		pageTables[0][0] = (int16_t) 0;
+		pageTables[0][MEMORYPAGES - 1] = (int16_t) MEMORYPAGES - 1;
+		masterTable[0] = '1';
+		masterTable[MEMORYPAGES - 1] = '1';
+	} 
 
 
 
@@ -71,9 +79,17 @@ void initializeScheduler(){
 
 }
 
+int16_t nextFreePage() {
+	for (int16_t i = 0; i < TOTALPAGES; i++) {
+		if (masterTable[i] == '0') {
+			return i;
+		}
+	}
+}
+
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
-
+	int16_t pageIndex, endIndex;
 
 	// ------VINEET'S CODE ----
 	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
@@ -102,7 +118,14 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	new_node->join_value = NULL;
 	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
 	
-			
+	pageIndex = nextFreePage();
+	pageTables[(*thread)->thread_id][0] = pageIndex;
+	masterTable[pageIndex] = '1';
+	createPageHeader(pageIndex);
+	endIndex = nextFreePage();
+	pageTables[(*thread)->thread_id][MEMORYPAGES - 1] = endIndex;
+	masterTable[endIndex] = '1';
+	createPageFooter(endIndex);
 
 
 
@@ -122,6 +145,7 @@ void my_pthread_yield(){
 
 		// setitimer stuff
 	struct sigaction sa;
+	int i, newAddr;
 
 	/* Install timer_handler as the signal handler for SIGVTALRM. */
 	memset (&sa, 0, sizeof (sa));
@@ -141,7 +165,7 @@ void my_pthread_yield(){
 		//next thread to be scheduled
 		//the thread stays at the top of queue_priority_1 and gets scheduled 
 		
-
+		// exit was called before this
 		if(current == NULL){
 			/* Start a virtual timer. It counts down whenever this process is
 	  		executing. */
@@ -157,8 +181,25 @@ void my_pthread_yield(){
 			// if(current_thread->thread_id == 0) {
 			// 	isInitialized = 0;
 			// }
+			i = 0;
+			while(pageTables[current_thread->thread_id][i]) {
+				swap_in(pageTables[current_thread->thread_id][i], i);
+				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
+					masterTable[pageTables[current_thread->thread_id][i]] = '0';
+				}
+				pageTables[current_thread->thread_id][i] = (int16_t) i;
+				masterTable[i] = '1';
+				i++;
+			}
+			swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+			}
+			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			masterTable[MEMORYPAGES - 1] = '1';
 			setcontext(current_thread->context);
 		}else if (current->thread_id != current_thread->thread_id){
+			// current is main thread
 			my_pthread_t temp = current;
 			current = current_thread;
 
@@ -171,6 +212,34 @@ void my_pthread_yield(){
 			// if(current_thread->thread_id == 0) {
 			// 	isInitialized = 0;
 			// }
+			i = 0;
+			while(pageTables[temp->thread_id][i]) {
+				newAddr = swap_out((int16_t) i);
+				masterTable[i] = '0'
+				pageTables[temp->thread_id][i] = newAddr;
+				masterTable[newAddr] = '1';
+				i++;
+			}
+			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
+			masterTable[MEMORYPAGES - 1] = '0';
+			pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+			masterTable[newAddr] = '1';
+			i = 0;
+			while(pageTables[current_thread->thread_id][i]) {
+				swap_in(pageTables[current_thread->thread_id][i], i);
+				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
+					masterTable[pageTables[current_thread->thread_id][i]] = '0';
+				}
+				pageTables[current_thread->thread_id][i] = (int16_t) i;
+				masterTable[i] = '1';
+				i++;
+			}
+			swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+			}
+			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			masterTable[MEMORYPAGES - 1] = '1';
 			swapcontext(temp->context, current_thread->context);
 		}else{
 			current_thread_node = dequeue(&queue_priority_1, &priority1_size);
@@ -206,6 +275,34 @@ void my_pthread_yield(){
 			// if(next_thread->thread_id == 0) {
 			// 	isInitialized = 0;
 			// }
+			i = 0;
+			while(pageTables[temp->thread_id][i]) {
+				newAddr = swap_out((int16_t) i);
+				masterTable[i] = '0'
+				pageTables[temp->thread_id][i] = newAddr;
+				masterTable[newAddr] = '1';
+				i++;
+			}
+			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
+			masterTable[MEMORYPAGES - 1] = '0';
+			pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+			masterTable[newAddr] = '1';
+			i = 0;
+			while(pageTables[next_thread->thread_id][i]) {
+				swap_in(pageTables[next_thread->thread_id][i], i);
+				if (pageTables[next_thread->thread_id][i] < MEMORYPAGES) {
+					masterTable[pageTables[next_thread->thread_id][i]] = '0';
+				}
+				pageTables[next_thread->thread_id][i] = (int16_t) i;
+				masterTable[i] = '1';
+				i++;
+			}
+			swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+			if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+				masterTable[pageTables[next_thread->thread_id][MEMORYPAGES - 1]] = '0';
+			}
+			pageTables[next_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+			masterTable[MEMORYPAGES - 1] = '1';
 			swapcontext(temp->context, next_thread->context);
 		}
 	}
@@ -222,7 +319,7 @@ void my_pthread_yield(){
 			printf("3. Thread found in priority 2: %i\n", current_thread->thread_id);
 			
 
-
+			// exit was called before this
 			if(current == NULL){
 				/* Start a virtual timer. It counts down whenever this process is
 		  		executing. */
@@ -237,8 +334,25 @@ void my_pthread_yield(){
 				// if(current_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
+				i = 0;
+				while(pageTables[current_thread->thread_id][i]) {
+					swap_in(pageTables[current_thread->thread_id][i], i);
+					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
+						masterTable[pageTables[current_thread->thread_id][i]] = '0';
+					}
+					pageTables[current_thread->thread_id][i] = (int16_t) i;
+					masterTable[i] = '1';
+					i++;
+				}
+				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+				}
+				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				masterTable[MEMORYPAGES - 1] = '1';
 				setcontext(current_thread->context);
 			}else if (current->thread_id != current_thread->thread_id){
+				// current is main thread
 				my_pthread_t temp = current;
 				current = current_thread;
 
@@ -251,6 +365,34 @@ void my_pthread_yield(){
 				// if(current_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
+				i = 0;
+				while(pageTables[temp->thread_id][i]) {
+					newAddr = swap_out((int16_t) i);
+					masterTable[i] = '0'
+					pageTables[temp->thread_id][i] = newAddr;
+					masterTable[newAddr] = '1';
+					i++;
+				}
+				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
+				masterTable[MEMORYPAGES - 1] = '0';
+				pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+				masterTable[newAddr] = '1';
+				i = 0;
+				while(pageTables[current_thread->thread_id][i]) {
+					swap_in(pageTables[current_thread->thread_id][i], i);
+					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
+						masterTable[pageTables[current_thread->thread_id][i]] = '0';
+					}
+					pageTables[current_thread->thread_id][i] = (int16_t) i;
+					masterTable[i] = '1';
+					i++;
+				}
+				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+				}
+				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				masterTable[MEMORYPAGES - 1] = '1';
 				swapcontext(temp->context, current_thread->context);
 			}else{
 				current_thread_node = dequeue(&queue_priority_2, &priority2_size);
@@ -279,6 +421,34 @@ void my_pthread_yield(){
 				// if(next_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
+				i = 0;
+				while(pageTables[temp->thread_id][i]) {
+					newAddr = swap_out((int16_t) i);
+					masterTable[i] = '0'
+					pageTables[temp->thread_id][i] = newAddr;
+					masterTable[newAddr] = '1';
+					i++;
+				}
+				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
+				masterTable[MEMORYPAGES - 1] = '0';
+				pageTables[temp->thread_id][MEMORYPAGES - 1] = newAddr;
+				masterTable[newAddr] = '1';
+				i = 0;
+				while(pageTables[next_thread->thread_id][i]) {
+					swap_in(pageTables[next_thread->thread_id][i], i);
+					if (pageTables[next_thread->thread_id][i] < MEMORYPAGES) {
+						masterTable[pageTables[next_thread->thread_id][i]] = '0';
+					}
+					pageTables[next_thread->thread_id][i] = (int16_t) i;
+					masterTable[i] = '1';
+					i++;
+				}
+				swap_in(pageTables[next_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				if (pageTables[next_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+					masterTable[pageTables[next_thread->thread_id][MEMORYPAGES - 1]] = '0';
+				}
+				pageTables[next_thread->thread_id][MEMORYPAGES - 1] = MEMORYPAGES - 1;
+				masterTable[MEMORYPAGES - 1] = '1';
 				swapcontext(temp->context, next_thread->context);
 			}
 		}
@@ -305,6 +475,7 @@ void my_pthread_exit(void * value_ptr){
 	4. my_pthread_yield
  
 	*/
+	int i;
 	my_pthread_t current_thread = current;
 	queue_node *queue_priority_1_head = peek(queue_priority_1);
 	queue_node *queue_priority_2_head = peek(queue_priority_2);
@@ -375,6 +546,11 @@ void my_pthread_exit(void * value_ptr){
 	// 	}
 	// }
 	
+	i = 0;
+	while (pageTables[current->thread_id][i]) {
+		masterTable[pageTables[current->thread_id][i]] = '0';
+	}
+	masterTable[MEMORYPAGES - 1] = '0';
 	printf("exiting thread: %d\n", current->thread_id);
 	current = NULL;
 	my_pthread_yield();
@@ -411,6 +587,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		*value_ptr = thread->return_value;
 	}
 
+	mydeallocate(pageTables[thread->thread_id], __FILE__, __LINE__, 69);
 	mydeallocate(thread->context->uc_stack.ss_sp,__FILE__,__LINE__, 69);
 	mydeallocate(thread->context,__FILE__,__LINE__, 69);
 	mydeallocate(thread,__FILE__,__LINE__, 69);
@@ -618,7 +795,6 @@ void handler(int sig){
 
 /*
 int main(){
-
 	
 	my_pthread_t *thread;
 	my_pthread_t *thread2;
@@ -626,7 +802,6 @@ int main(){
 	my_pthread_create(thread2, NULL, &printFunction, NULL);
 	my_pthread_join(*thread2, NULL);
 	my_pthread_yield();
-
 	
 	my_pthread_t * thread = myallocate(sizeof(my_pthread_t));
 	thread->string = "this is the first thread";
@@ -642,13 +817,8 @@ int main(){
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
 	printf("removing: %s\n", dequeue(&queue)->thread->string);
-
-
-
-
 	printf("Ending main\n");
 	
 	return 0;
-
 }
 */

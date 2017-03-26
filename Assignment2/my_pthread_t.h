@@ -13,6 +13,8 @@
 #include <unistd.h>
 
 #define THREADREQ 999
+#define TOTALPAGES 5632
+#define MEMORYPAGES 1536
 #define malloc(x) myallocate(x,__FILE__,__LINE__, THREADREQ)
 #define free(x)  mydeallocate(x,__FILE__,__LINE__, THREADREQ)
 
