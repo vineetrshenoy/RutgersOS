@@ -105,7 +105,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 	
 	if (memoryInitialized == 0){
 		initializeMemory();
-		//initializeScheduler();
+		initializeScheduler();
 		memoryInitialized = 1;
 	}
 
