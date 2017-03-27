@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdint.h>
 #include "mymalloc.h"
 
@@ -23,6 +24,7 @@
 #define TOTALPAGES 5632
 #define MEMORYPAGES 1536
 #define MAXTHREADS 128
+#define STACK_SIZE 10000
 #define malloc(x) myallocate(x,__FILE__,__LINE__, THREADREQ)
 #define free(x)  mydeallocate(x,__FILE__,__LINE__, THREADREQ)
 

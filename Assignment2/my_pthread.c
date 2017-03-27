@@ -12,7 +12,7 @@
 #include "mymalloc.h"
 #include "my_pthread_t.h"
 
-#define STACK_SIZE 100000
+
 
 
 
@@ -99,6 +99,7 @@ int16_t nextFreePage() {
 	int16_t i;
 	for (i = 0; i < TOTALPAGES; i++) {
 		if (masterTable[i] == '0') {
+			printf("NEXT FREE PAGE: %d\n", i);
 			return i;
 		}
 	}

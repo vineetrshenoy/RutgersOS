@@ -194,6 +194,8 @@ void * myallocate(size_t size, char * b, int a, int id){
 	char *headerPointer;
 	char * footerPointer;
 	int oldSize, difference, adjustedSize;
+	void * headerAddress, *footerAddress;
+	int headerPage, footerPage;
 	
 	if (memoryInitialized == 0){
 		install_seg_handler();
@@ -235,13 +237,36 @@ void * myallocate(size_t size, char * b, int a, int id){
 			//footerPointer = (char *) (ptr + extendedSize - (2 * HDRSIZE));
 			setValue(footerPointer,extendedSize,1);
 			setValue(footerPointer + 4, difference, 0);
+			headerAddress = getHeader(ptr);
+			footerAddress = getFooter(ptr);
 
 		}
-		else{
+		else if ((oldSize > extendedSize) && (difference >= 0 && difference <= (2 * HDRSIZE))){
 			setValue(getHeader(ptr), oldSize, 1);
 			setValue(getFooter(ptr), oldSize, 1);
+			headerAddress = getHeader(ptr);
+			footerAddress = getFooter(ptr);
 		}
+		else
+			return NULL;
+		
+		if (whichMemory == memory + OS_SIZE){
 
+			headerPage = (headerAddress - (memory + OS_SIZE))/pageSize;
+				
+			footerPage = (footerAddress - (memory + OS_SIZE))/pageSize;
+			
+			void * pagePointer;
+			int16_t i = 0;
+			
+			for (i = headerPage; i <= footerPage; i++){
+				pageTables[current->thread_id][i] = i;
+				masterTable[i] = '1';
+				pagePointer = memory + OS_SIZE + (i * pageSize);
+				mprotect(pagePointer, pageSize, PROT_READ | PROT_WRITE);
+
+			}
+		}
 
 		return ptr;
 	}
