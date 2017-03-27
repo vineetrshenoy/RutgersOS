@@ -55,14 +55,14 @@ void initializeScheduler(){
 		int i = 0;
 		//creating the page tables
 		pageTables = (int16_t **) myallocate(MAXTHREADS * sizeof(int16_t *),__FILE__,__LINE__, 69);
-		for (i = 0; i < MAXTHREADS; i++){
+		/*for (i = 0; i < MAXTHREADS; i++){
 			pageTables[i] = (int16_t *) myallocate(TOTALPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
-		}
+		}*/
 		masterTable = (char *) myallocate(TOTALPAGES*sizeof(char), __FILE__, __LINE__, 69);
 		for (i = 0; i < TOTALPAGES; i++) {
 			masterTable[i] = '0';
 		}
-
+		pageTables[0] = (int16_t *) myallocate(MEMORYPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
 		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for the my_pthread struct
 		mainThread->context = (ucontext_t *) myallocate(sizeof(ucontext_t),__FILE__,__LINE__, 69);	//myallocate space for main contex
 		mainThread->thread_id = 0;	//Zero will always be thread id for main
@@ -145,7 +145,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
 	}
 
-
+	pageTables[(*thread)->thread_id] = (int16_t *) myallocate(MEMORYPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
 	pageIndex = nextFreePage();
 	pageTables[(*thread)->thread_id][0] = pageIndex;
 	masterTable[pageIndex] = '1';
@@ -418,6 +418,7 @@ void my_pthread_yield(){
 								masterTable[newAddr] = '1';
 								break;
 							}
+							j++;
 						}
 						swap_in(pageTables[current_thread->thread_id][i], i);
 					}
@@ -672,6 +673,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	// }
 	//get the node from the priority queue
 	int i;
+	void *pagePtr;
 	printf("join was called.\n");
 	// queue_node * node = search_pq();
 	// if (node == NULL){
@@ -694,9 +696,13 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 	i = 0;
 	while (pageTables[thread->thread_id][i] != (int16_t) 6969) {
+		pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][i]*pageSize;
+		mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 		masterTable[pageTables[thread->thread_id][i]] = '0';
 		i++;
 	}
+	pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][MEMORYPAGES - 1]*pageSize;
+	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 	masterTable[pageTables[thread->thread_id][MEMORYPAGES - 1]] = '0';
 
 	mydeallocate(pageTables[thread->thread_id], __FILE__, __LINE__, 69);
@@ -875,7 +881,7 @@ void printQueue(queue_node *tail){
 	queue_node *iter = tail;
 	//printf("%s\n", iter->thread->string);
 	while(iter){
-		printf("%s\n", iter->thread->string);
+		//printf("%s\n", iter->thread->string);
 		iter = iter->next;
 	}
 }

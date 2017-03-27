@@ -36,7 +36,6 @@ struct my_pthread_t {
 
 	int thread_id;
 	ucontext_t * context;
-	char * string;
 	my_pthread_state state;
 	void* return_value;
 
