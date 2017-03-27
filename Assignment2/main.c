@@ -1,21 +1,14 @@
+#include <stdio.h>
 #include "my_pthread_t.h"
 
-
-#define BILLION 1000000000L
-
-
-
-void * myThread(void* p){
+void* myThread(void* p){
         printf("Hello from thread %d\n", *(int*)p);
     my_pthread_exit(0);
     return 0;
 }
 
-
 int main(){
-
-	
-	my_pthread_t* thread;
+    my_pthread_t* thread;
     int id, arg1, arg2;
     arg1 = 1;
     thread = (my_pthread_t*) malloc(sizeof(my_pthread_t));
@@ -27,11 +20,3 @@ int main(){
     
     return 0;
 }
-
-
-
-
-
-
-
-

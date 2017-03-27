@@ -28,6 +28,7 @@ int totalThreads = 0;
 int16_t ** pageTables = NULL;
 char * masterTable = NULL;
 my_pthread_t current = NULL;
+my_pthread_t pointer = NULL;
 queue_node* queue_priority_1 = NULL;
 queue_node* queue_priority_2 = NULL;
 queue_node * wait_queue = NULL; 
@@ -47,6 +48,7 @@ void timer_handler (int signum){
 
 void initializeScheduler(){
 	void *ptr;
+	int i;
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
 		isInitialized = 1;	//change isInitialized flag
@@ -70,6 +72,14 @@ void initializeScheduler(){
 		
 		pageTables[0][0] = (int16_t) 0;
 		pageTables[0][MEMORYPAGES - 1] = (int16_t) MEMORYPAGES - 1;
+		for (i = 1; i < MEMORYPAGES - 1; i++) {
+			pageTables[0][i] = (int16_t) 6969;
+		}
+		/*
+		for (i = MEMORYPAGES; i < TOTALPAGES; i++) {
+			pageTables[0][i] = (int16_t) 6969;
+		}
+		*/
 		masterTable[0] = '1';
 		masterTable[MEMORYPAGES - 1] = '1';
 		ptr = memory + OS_SIZE;
@@ -98,6 +108,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 	int16_t pageIndex, endIndex;
 	void *headerPtr, *footerPtr;
+	int i;
 
 	// ------VINEET'S CODE ----
 	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
@@ -143,10 +154,20 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	pageTables[(*thread)->thread_id][MEMORYPAGES - 1] = endIndex;
 	masterTable[endIndex] = '1';
 	createPageFooter(endIndex);
+	for (i = 1; i < MEMORYPAGES - 1; i++) {
+		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
+	}
+	/*
+	for (i = MEMORYPAGES; i < TOTALPAGES; i++) {
+		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
+	}
+	*/
 	headerPtr = memory + OS_SIZE + pageIndex*pageSize;
 	mprotect(headerPtr, pageSize, PROT_NONE);
 	footerPtr = memory + OS_SIZE + (endIndex)*pageSize;
 	mprotect(footerPtr, pageSize, PROT_NONE);
+	
+	my_pthread_yield();
 	return 0;
 
 }
@@ -162,7 +183,8 @@ void my_pthread_yield(){
 
 		// setitimer stuff
 	struct sigaction sa;
-	int i, newAddr;
+	int i, j, storedi;
+	int16_t newAddr;
 
 	/* Install timer_handler as the signal handler for SIGVTALRM. */
 	memset (&sa, 0, sizeof (sa));
@@ -199,8 +221,20 @@ void my_pthread_yield(){
 			// 	isInitialized = 0;
 			// }
 			i = 0;
-			while(pageTables[current_thread->thread_id][i]) {
+			printf("before paging\n");
+			while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
 				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+					j = 0;
+					while(pageTables[j]) {
+						if (pageTables[j][i] == (int16_t) i) {
+							newAddr = swap_out((int16_t) i);
+							masterTable[i] = '0';
+							pageTables[j][i] = newAddr;
+							masterTable[newAddr] = '1';
+							break;
+						}
+						j++;
+					}
 					swap_in(pageTables[current_thread->thread_id][i], i);
 				}
 				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
@@ -218,6 +252,7 @@ void my_pthread_yield(){
 			}
 			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '1';
+			printf("after paging\n");
 			setcontext(current_thread->context);
 		}else if (current->thread_id != current_thread->thread_id){
 			// current is main thread
@@ -234,19 +269,23 @@ void my_pthread_yield(){
 			// 	isInitialized = 0;
 			// }
 			i = 0;
-			while(pageTables[temp->thread_id][i]) {
+			while(pageTables[temp->thread_id][i] != (int16_t) 6969) {
 				newAddr = swap_out((int16_t) i);
-				masterTable[i] = '0';
+				// masterTable[i] = '0';
 				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
 			}
+			storedi = i;
 			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '0';
 			pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 			masterTable[newAddr] = '1';
+			for (i = 0; i < storedi; i++) {
+				masterTable[i] = '0';
+			}
 			i = 0;
-			while(pageTables[current_thread->thread_id][i]) {
+			while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
 				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
 					swap_in(pageTables[current_thread->thread_id][i], i);
 				}
@@ -301,19 +340,23 @@ void my_pthread_yield(){
 			// 	isInitialized = 0;
 			// }
 			i = 0;
-			while(pageTables[temp->thread_id][i]) {
+			while(pageTables[temp->thread_id][i] != (int16_t) 6969) {
 				newAddr = swap_out((int16_t) i);
-				masterTable[i] = '0';
+				// masterTable[i] = '0';
 				pageTables[temp->thread_id][i] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
 				i++;
 			}
+			storedi = i;
 			newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 			masterTable[MEMORYPAGES - 1] = '0';
 			pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 			masterTable[newAddr] = '1';
+			for (i = 0; i < storedi; i++) {
+				masterTable[i] = '0';
+			}
 			i = 0;
-			while(pageTables[next_thread->thread_id][i]) {
+			while(pageTables[next_thread->thread_id][i] != (int16_t) 6969) {
 				if (pageTables[next_thread->thread_id][i] != (int16_t) i) {
 					swap_in(pageTables[next_thread->thread_id][i], i);
 				}
@@ -364,8 +407,18 @@ void my_pthread_yield(){
 				// 	isInitialized = 0;
 				// }
 				i = 0;
-				while(pageTables[current_thread->thread_id][i]) {
+				while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
 					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+						j = 0;
+						while(pageTables[j]) {
+							if (pageTables[j][i] == (int16_t) i) {
+								newAddr = swap_out((int16_t) i);
+								masterTable[i] = '0';
+								pageTables[j][i] = newAddr;
+								masterTable[newAddr] = '1';
+								break;
+							}
+						}
 						swap_in(pageTables[current_thread->thread_id][i], i);
 					}
 					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
@@ -399,19 +452,23 @@ void my_pthread_yield(){
 				// 	isInitialized = 0;
 				// }
 				i = 0;
-				while(pageTables[temp->thread_id][i]) {
+				while(pageTables[temp->thread_id][i] != (int16_t) 6969) {
 					newAddr = swap_out((int16_t) i);
-					masterTable[i] = '0';
+					// masterTable[i] = '0';
 					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;
 				}
+				storedi = i;
 				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '0';
 				pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
+				for (i = 0; i < storedi; i++) {
+					masterTable[i] = '0';
+				}
 				i = 0;
-				while(pageTables[current_thread->thread_id][i]) {
+				while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
 					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
 						swap_in(pageTables[current_thread->thread_id][i], i);
 					}
@@ -459,19 +516,23 @@ void my_pthread_yield(){
 				// 	isInitialized = 0;
 				// }
 				i = 0;
-				while(pageTables[temp->thread_id][i]) {
+				while(pageTables[temp->thread_id][i] != (int16_t) 6969) {
 					newAddr = swap_out((int16_t) i);
-					masterTable[i] = '0';
+					// masterTable[i] = '0';
 					pageTables[temp->thread_id][i] = (int16_t) newAddr;
 					masterTable[newAddr] = '1';
 					i++;
 				}
+				storedi = i;
 				newAddr = swap_out((int16_t) MEMORYPAGES - 1);
 				masterTable[MEMORYPAGES - 1] = '0';
 				pageTables[temp->thread_id][MEMORYPAGES - 1] = (int16_t) newAddr;
 				masterTable[newAddr] = '1';
+				for (i = 0; i < storedi; i++) {
+					masterTable[i] = '0';
+				}
 				i = 0;
-				while(pageTables[next_thread->thread_id][i]) {
+				while(pageTables[next_thread->thread_id][i] != (int16_t) 6969) {
 					if (pageTables[next_thread->thread_id][i] != (int16_t) i) {
 						swap_in(pageTables[next_thread->thread_id][i], i);
 					}
@@ -517,6 +578,7 @@ void my_pthread_exit(void * value_ptr){
  
 	*/
 	int i;
+	my_pthread_t temp;
 	my_pthread_t current_thread = current;
 	queue_node *queue_priority_1_head = peek(queue_priority_1);
 	queue_node *queue_priority_2_head = peek(queue_priority_2);
@@ -587,15 +649,13 @@ void my_pthread_exit(void * value_ptr){
 	// 	}
 	// }
 	
-	i = 0;
-	while (pageTables[current->thread_id][i]) {
-		masterTable[pageTables[current->thread_id][i]] = '0';
-	}
-	masterTable[MEMORYPAGES - 1] = '0';
+	
 	if (current->thread_id == 0) {
 		close(fileDescriptor);
 	}
 	printf("exiting thread: %d\n", current->thread_id);
+	//temp = current;
+	pointer = current;
 	current = NULL;
 	my_pthread_yield();
 	
@@ -611,6 +671,7 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 	// 	return -1;
 	// }
 	//get the node from the priority queue
+	int i;
 	printf("join was called.\n");
 	// queue_node * node = search_pq();
 	// if (node == NULL){
@@ -630,6 +691,13 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 		// node->join_value = value_ptr;
 		*value_ptr = thread->return_value;
 	}
+
+	i = 0;
+	while (pageTables[thread->thread_id][i] != (int16_t) 6969) {
+		masterTable[pageTables[thread->thread_id][i]] = '0';
+		i++;
+	}
+	masterTable[pageTables[thread->thread_id][MEMORYPAGES - 1]] = '0';
 
 	mydeallocate(pageTables[thread->thread_id], __FILE__, __LINE__, 69);
 	mydeallocate(thread->context->uc_stack.ss_sp,__FILE__,__LINE__, 69);

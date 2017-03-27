@@ -51,7 +51,7 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 		
 		int j = 0;
 
-		while (pageTables[i][j]){
+		while (pageTables[i][j] != (int16_t) 6969){
 
 			if(pageTables[i][j] == (int16_t) offset){
 				int newAddr = swap_out((int16_t) offset);
@@ -560,6 +560,8 @@ int16_t swap_out(int16_t page) {
 	}
 	memset(pagePtr, 0, pageSize);
 	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+
+	return freePage;
 }
 
 
