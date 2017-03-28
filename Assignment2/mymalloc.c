@@ -581,6 +581,7 @@ char * createExtremities(char * p, int size, int allocated){
 void swap_in(int16_t newPage, int des) {
 	void *pagePtr, *desPtr;
 	desPtr = memory + OS_SIZE + des*pageSize;
+	mprotect(desPtr, pageSize, PROT_READ|PROT_WRITE);
 	if (newPage < MEMORYPAGES) {
 		pagePtr = memory + OS_SIZE + newPage*pageSize;
 		mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
@@ -603,6 +604,7 @@ int16_t swap_out(int16_t page) {
 	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 	if (freePage < MEMORYPAGES) {
 		desPtr = memory + OS_SIZE + freePage*pageSize;
+		mprotect(desPtr, pageSize, PROT_READ|PROT_WRITE);
 		memcpy(desPtr, pagePtr, pageSize);
 		mprotect(desPtr, pageSize, PROT_NONE);
 	}
