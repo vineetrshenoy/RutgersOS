@@ -10,8 +10,11 @@ int c=0;
 
 void* counter(void* a){
     int i,temp;
-    int z = 4 * pow(2,20);
-    int * pointer = (int *) malloc(4 * pow(2,20));
+    int z = 3 * pow(2,20);
+    int * pointer = (int *) malloc(3 * pow(2,20));
+    if (pointer == NULL) {
+        printf("no space to malloc\n");
+    }
 
     for(i=0; i<ITER; i++){
         my_pthread_mutex_lock(&lock);       
