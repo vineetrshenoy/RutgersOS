@@ -60,11 +60,20 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 				masterTable[newAddr] = '1';
 				pageTables[current->thread_id][offset] = (int16_t) offset;
 				masterTable[offset] = '1';
+				break;
 
 			}
 
 			j++;
 
+		}
+		if(pageTables[i][MEMORYPAGES - 1] == (int16_t) offset){
+			int newAddr = swap_out((int16_t) offset);
+			masterTable[offset] = '0';
+			pageTables[i][MEMORYPAGES - 1] = (int16_t) newAddr;
+			masterTable[newAddr] = '1';
+			pageTables[current->thread_id][offset] = (int16_t) offset;
+			masterTable[offset] = '1';
 		}
 		i++;
 
