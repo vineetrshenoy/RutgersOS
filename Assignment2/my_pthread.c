@@ -222,38 +222,47 @@ void my_pthread_yield(){
 			// 	isInitialized = 0;
 			// }
 			i = 0;
-			printf("before paging\n");
-			while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
-				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+				while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
+					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
+						j = 0;
+						while(pageTables[j]) {
+							if (pageTables[j][i] == (int16_t) i) {
+								newAddr = swap_out((int16_t) i);
+								// masterTable[i] = '0';
+								pageTables[j][i] = newAddr;
+								masterTable[newAddr] = '1';
+								break;
+							}
+							j++;
+						}
+						swap_in(pageTables[current_thread->thread_id][i], i);
+					}
+					if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
+						masterTable[pageTables[current_thread->thread_id][i]] = '0';
+					}
+					pageTables[current_thread->thread_id][i] = (int16_t) i;
+					masterTable[i] = '1';
+					i++;
+				}
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
 					j = 0;
-					while(pageTables[j]) {
-						if (pageTables[j][i] == (int16_t) i) {
-							newAddr = swap_out((int16_t) i);
+					while (pageTables[j]) {
+						if(pageTables[j][MEMORYPAGES - 1] == (int16_t) (MEMORYPAGES - 1)) {
+							newAddr = swap_out((int16_t) (MEMORYPAGES - 1));
 							masterTable[i] = '0';
-							pageTables[j][i] = newAddr;
+							pageTables[j][MEMORYPAGES - 1] = newAddr;
 							masterTable[newAddr] = '1';
 							break;
 						}
 						j++;
 					}
-					swap_in(pageTables[current_thread->thread_id][i], i);
+					swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
 				}
-				if (pageTables[current_thread->thread_id][i] < MEMORYPAGES) {
-					masterTable[pageTables[current_thread->thread_id][i]] = '0';
+				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
 				}
-				pageTables[current_thread->thread_id][i] = (int16_t) i;
-				masterTable[i] = '1';
-				i++;
-			}
-			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
-				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
-			}
-			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
-				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
-			}
-			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
-			masterTable[MEMORYPAGES - 1] = '1';
-			printf("after paging\n");
+				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
+				masterTable[MEMORYPAGES - 1] = '1';
 			setcontext(current_thread->context);
 		}else if (current->thread_id != current_thread->thread_id){
 			// current is main thread
@@ -414,7 +423,7 @@ void my_pthread_yield(){
 						while(pageTables[j]) {
 							if (pageTables[j][i] == (int16_t) i) {
 								newAddr = swap_out((int16_t) i);
-								masterTable[i] = '0';
+								// masterTable[i] = '0';
 								pageTables[j][i] = newAddr;
 								masterTable[newAddr] = '1';
 								break;
@@ -431,6 +440,17 @@ void my_pthread_yield(){
 					i++;
 				}
 				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+					j = 0;
+					while (pageTables[j]) {
+						if(pageTables[j][MEMORYPAGES - 1] == (int16_t) (MEMORYPAGES - 1)) {
+							newAddr = swap_out((int16_t) (MEMORYPAGES - 1));
+							masterTable[i] = '0';
+							pageTables[j][MEMORYPAGES - 1] = newAddr;
+							masterTable[newAddr] = '1';
+							break;
+						}
+						j++;
+					}
 					swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
 				}
 				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
