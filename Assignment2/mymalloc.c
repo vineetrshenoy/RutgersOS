@@ -205,7 +205,7 @@ void * myallocate(size_t size, char * b, int a, int id){
 	int oldSize, difference, adjustedSize;
 	void * headerAddress, *footerAddress;
 	int16_t headerPage, footerPage, newAddr;
-	int j;
+	int j, k;
 	
 	if (memoryInitialized == 0){
 		install_seg_handler();
@@ -277,12 +277,14 @@ void * myallocate(size_t size, char * b, int a, int id){
 					else {
 						j = 0;
 						while(pageTables[j]) {
-							if (pageTables[j][i] == (int16_t) i) {
-								newAddr = swap_out((int16_t) i);
-								// masterTable[i] = '0';
-								pageTables[j][i] = newAddr;
-								masterTable[newAddr] = '1';
-								break;
+							for (k = 0; k < MEMORYPAGES; k++) {
+								if (pageTables[j][k] == (int16_t) i) {
+									newAddr = swap_out((int16_t) i);
+									// masterTable[i] = '0';
+									pageTables[j][k] = newAddr;
+									masterTable[newAddr] = '1';
+									break;
+								}
 							}
 							j++;
 						}
