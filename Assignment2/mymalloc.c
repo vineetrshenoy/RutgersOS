@@ -47,7 +47,7 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 
 	int16_t offset = si->si_addr - memory - OS_SIZE;
 	int i = 0;
-	for (i = 0; i < MAXTHREADS; i++){
+	while (pageTables[i]) {
 		
 		int j = 0;
 
@@ -66,7 +66,7 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 			j++;
 
 		}
-
+		i++;
 
 	}
 
@@ -596,8 +596,8 @@ int16_t swap_out(int16_t page) {
 		mprotect(desPtr, pageSize, PROT_NONE);
 	}
 	else if (freePage < TOTALPAGES) {
-		freePage -= MEMORYPAGES;
-		lseek(fileDescriptor, freePage*pageSize, SEEK_SET);
+		// freePage -= MEMORYPAGES;
+		lseek(fileDescriptor, (freePage - MEMORYPAGES)*pageSize, SEEK_SET);
 		write(fileDescriptor, pagePtr, pageSize);
 	}
 	else {
