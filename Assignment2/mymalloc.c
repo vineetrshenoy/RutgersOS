@@ -144,7 +144,7 @@ void createPageHeader(int16_t offset){
 
 	int *headerPointer;
 	int header;
-	int adjustedSize = OS_SIZE - HDRSIZE;
+	int adjustedSize = USR_SIZE - 2*HDRSIZE;
 	if (offset < MEMORYPAGES) {
 		void * ptr = memory + OS_SIZE + (offset * pageSize);	// beginning of requested page
 		headerPointer = (int *)ptr;
@@ -165,7 +165,7 @@ void createPageFooter(int16_t offset){
 	
 	int *headerPointer;
 	int header;
-	int adjustedSize = OS_SIZE - HDRSIZE;
+	int adjustedSize = USR_SIZE - 2*HDRSIZE;
 	if (offset < MEMORYPAGES) {
 		void * ptr = memory + OS_SIZE + (offset * pageSize);	// beginning of requested page
 		headerPointer = (int *)ptr;
@@ -195,7 +195,8 @@ void * myallocate(size_t size, char * b, int a, int id){
 	char * footerPointer;
 	int oldSize, difference, adjustedSize;
 	void * headerAddress, *footerAddress;
-	int headerPage, footerPage;
+	int16_t headerPage, footerPage, newAddr;
+	int j;
 	
 	if (memoryInitialized == 0){
 		install_seg_handler();
@@ -260,6 +261,24 @@ void * myallocate(size_t size, char * b, int a, int id){
 			int16_t i = 0;
 			
 			for (i = headerPage; i <= footerPage; i++){
+				if (masterTable[i] == '1') {
+					if (pageTables[current->thread_id][i] == i) {
+						continue;
+					}
+					else {
+						j = 0;
+						while(pageTables[j]) {
+							if (pageTables[j][i] == (int16_t) i) {
+								newAddr = swap_out((int16_t) i);
+								// masterTable[i] = '0';
+								pageTables[j][i] = newAddr;
+								masterTable[newAddr] = '1';
+								break;
+							}
+							j++;
+						}
+					}
+				}
 				pageTables[current->thread_id][i] = i;
 				masterTable[i] = '1';
 				pagePointer = memory + OS_SIZE + (i * pageSize);
@@ -570,6 +589,7 @@ int16_t swap_out(int16_t page) {
 	void *pagePtr, *desPtr;
 	int16_t freePage = nextFreePage();
 	pagePtr = memory + OS_SIZE + page*pageSize;
+	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 	if (freePage < MEMORYPAGES) {
 		desPtr = memory + OS_SIZE + freePage*pageSize;
 		memcpy(desPtr, pagePtr, pageSize);
@@ -584,7 +604,7 @@ int16_t swap_out(int16_t page) {
 		return 6969;
 	}
 	memset(pagePtr, 0, pageSize);
-	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+	// mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
 
 	return freePage;
 }
