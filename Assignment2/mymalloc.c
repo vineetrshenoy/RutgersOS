@@ -45,8 +45,16 @@ void install_seg_handler(){
 static void seg_handler(int sig, siginfo_t * si, void * unused){
 	printf("Got SIGSEGV at address 0x%lx\n", (long) si->si_addr);
 
-	int16_t offset = si->si_addr - memory - OS_SIZE;
+	int16_t offset = (int16_t) ((si->si_addr - memory - OS_SIZE)/pageSize);
 	int i = 0;
+	void *ptr;
+	if (masterTable[offset] == '0') {
+		ptr = memory + OS_SIZE + offset*pageSize;
+		mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
+		pageTables[current->thread_id][offset] = offset;
+		masterTable[offset] = '1';
+		return;
+	}
 	while (pageTables[i]) {
 		
 		int j = 0;
