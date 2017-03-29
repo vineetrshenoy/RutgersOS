@@ -296,7 +296,7 @@ void my_pthread_yield(){
 			timer.it_interval.tv_sec = 0;
 			timer.it_interval.tv_usec = 500000*priority;
 
-			setitimer (ITIMER_REAL, &timer, NULL);
+			setitimer (ITIMER_VIRTUAL, &timer, NULL);
 
 			// if(current_thread->thread_id == 0) {
 			// 	isInitialized = 0;
@@ -352,7 +352,7 @@ void my_pthread_yield(){
 			timer.it_interval.tv_sec = 0;
 			timer.it_interval.tv_usec = 500000*priority;
 
-			setitimer(ITIMER_REAL, &timer, NULL);
+			setitimer(ITIMER_VIRTUAL, &timer, NULL);
 			// if(current_thread->thread_id == 0) {
 			// 	isInitialized = 0;
 			// }
@@ -419,7 +419,7 @@ void my_pthread_yield(){
 			timer.it_interval.tv_sec = 0;
 			timer.it_interval.tv_usec = 500000*priority;
 
-			setitimer(ITIMER_REAL, &timer, NULL);
+			setitimer(ITIMER_VIRTUAL, &timer, NULL);
 			// if(next_thread->thread_id == 0) {
 			// 	isInitialized = 0;
 			// }
@@ -482,7 +482,7 @@ void my_pthread_yield(){
 				timer.it_interval.tv_sec = 0;
 				timer.it_interval.tv_usec = 500000*priority;
 
-				setitimer (ITIMER_REAL, &timer, NULL);
+				setitimer (ITIMER_VIRTUAL, &timer, NULL);
 				// if(current_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
@@ -537,7 +537,7 @@ void my_pthread_yield(){
 				timer.it_interval.tv_sec = 0;
 				timer.it_interval.tv_usec = 500000*priority;
 
-				setitimer(ITIMER_REAL, &timer, NULL);
+				setitimer(ITIMER_VIRTUAL, &timer, NULL);
 				// if(current_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
@@ -597,7 +597,7 @@ void my_pthread_yield(){
 				timer.it_interval.tv_sec = 0;
 				timer.it_interval.tv_usec = 500000*priority;
 
-				setitimer(ITIMER_REAL, &timer, NULL);
+				setitimer(ITIMER_VIRTUAL, &timer, NULL);
 				// if(next_thread->thread_id == 0) {
 				// 	isInitialized = 0;
 				// }
