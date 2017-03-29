@@ -68,7 +68,9 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 				masterTable[newAddr] = '1';
 				pageTables[current->thread_id][offset] = (int16_t) offset;
 				masterTable[offset] = '1';
-				break;
+				ptr = memory + OS_SIZE + offset*pageSize;
+				mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
+				return;
 
 			}
 
