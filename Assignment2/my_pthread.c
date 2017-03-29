@@ -111,9 +111,13 @@ int16_t nextFreePage() {
 
 int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*function)(void*), void* arg){
 
-	int16_t pageIndex, endIndex;
-	void *headerPtr, *footerPtr;
-	int i, sizeOfArg;
+	int16_t pageIndex, endIndex, returnIndexHeader, returnIndexFooter, newAddr;
+	void *headerPtr, *footerPtr, *newArg, *ptr;
+	int i, sizeOfArg, storedi;
+	my_pthread_t savedCurrent;
+
+	newArg = NULL;
+	savedCurrent = NULL;
 
 	// ------VINEET'S CODE ----
 	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
@@ -135,21 +139,6 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	threadIDS++;
 	(*thread)->state = ACTIVE;	//Sets thread to active stat
 
-	makecontext((*thread)->context, (void (*)()) function, 1, arg); //creates with function. Users usually pass a struct of arguments?
-	queue_node *new_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
-	new_node->thread = *thread;
-	new_node->priority = 1;
-	new_node->join_value = NULL;
-	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
-	if (mainEnqueued == 0){
-		mainEnqueued = 1;
-		queue_node *main_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
-		main_node->thread = current;
-		main_node->priority = 1;
-		main_node->join_value = NULL;
-		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
-	}
-
 	pageTables[(*thread)->thread_id] = (int16_t *) myallocate(MEMORYPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
 	pageIndex = nextFreePage();
 	pageTables[(*thread)->thread_id][0] = pageIndex;
@@ -166,14 +155,99 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	for (i = 1; i < MEMORYPAGES - 1; i++) {
 		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
 	}
+
+	if (arg != NULL) {
+		sizeOfArg = sizeof(*arg);
+		savedCurrent = current;
+		current = *thread;
+		returnIndexHeader = swap_out(0);
+		swap_in(pageIndex, 0);
+		returnIndexFooter = swap_out(MEMORYPAGES - 1);
+		swap_in(endIndex, MEMORYPAGES - 1);
+		newArg = (void *) myallocate(sizeOfArg, __FILE__, __LINE__, 999);
+		*((char *) newArg) = *((char *) arg);
+	}
+
+	makecontext((*thread)->context, (void (*)()) function, 1, newArg); //creates with function. Users usually pass a struct of arguments?
+	queue_node *new_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
+	new_node->thread = *thread;
+	new_node->priority = 1;
+	new_node->join_value = NULL;
+	queue_priority_1 = enqueue(new_node, queue_priority_1, &priority1_size);	//Adds thread to priority queue
+	if (mainEnqueued == 0){
+		mainEnqueued = 1;
+		queue_node *main_node = myallocate(sizeof(queue_node),__FILE__,__LINE__, 69);
+		main_node->thread = current;
+		main_node->priority = 1;
+		main_node->join_value = NULL;
+		queue_priority_1 = enqueue(main_node, queue_priority_1, &priority1_size);
+	}
+
+	
 	/*
 	for (i = MEMORYPAGES; i < TOTALPAGES; i++) {
 		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
 	}
 	*/
+
+	i = 0;
+	while (pageTables[current->thread_id][i] != 6969) {
+		if (pageTables[current->thread_id][i] == i) {
+			newAddr = swap_out(i);
+			pageTables[current->thread_id][i] = newAddr;
+			if (newAddr < MEMORYPAGES) {
+				ptr = memory + OS_SIZE + newAddr*pageSize;
+				mprotect(ptr, pageSize, PROT_NONE);
+			}
+			masterTable[newAddr] = '1';
+		}
+		i++;
+	}
+	storedi = i;
+	if (pageTables[current->thread_id][MEMORYPAGES - 1] == MEMORYPAGES - 1) {
+		newAddr = swap_out(MEMORYPAGES - 1);
+		pageTables[current->thread_id][MEMORYPAGES - 1] = newAddr;
+		if (newAddr < MEMORYPAGES) {
+			ptr = memory + OS_SIZE + newAddr*pageSize;
+			mprotect(ptr, pageSize, PROT_NONE);
+		}
+		masterTable[newAddr] = '1';
+	}
+	for (i = 0; i < storedi; i++) {
+		masterTable[i] = '0';
+	}
+	masterTable[MEMORYPAGES - 1] = '0';
+	if (savedCurrent != NULL) {
+		current = savedCurrent;
+	}
+	i = 0;
+	while (pageTables[current->thread_id][i] != 6969) {
+		if (pageTables[current->thread_id][i] != i) {
+			swap_in(pageTables[current->thread_id][i], i);
+			if (i < MEMORYPAGES) {
+				ptr = memory + OS_SIZE + i*pageSize;
+				mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
+			}
+			masterTable[i] = '1';
+		}
+		i++;
+	}
+	storedi = i;
+	if (pageTables[current->thread_id][MEMORYPAGES - 1] != MEMORYPAGES - 1) {
+		swap_in(pageTables[current->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+		ptr = memory + OS_SIZE + (MEMORYPAGES - 1)*pageSize;
+		mprotect(ptr, pageSize, PROT_READ|PROT_WRITE);
+		masterTable[MEMORYPAGES - 1] = '1';
+	}
+	for (i = 0; i < storedi; i++) {
+		masterTable[pageTables[current->thread_id][i]] = '0';
+		pageTables[current->thread_id][i] = (int16_t) i;
+	}
+	masterTable[pageTables[current->thread_id][MEMORYPAGES - 1]] = '0';
+	pageTables[current->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
 	
-	mprotect(headerPtr, pageSize, PROT_NONE);
-	mprotect(footerPtr, pageSize, PROT_NONE);
+	// mprotect(headerPtr, pageSize, PROT_NONE);
+	// mprotect(footerPtr, pageSize, PROT_NONE);
 	
 	my_pthread_yield();
 	return 0;
