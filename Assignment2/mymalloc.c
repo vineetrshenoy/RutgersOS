@@ -94,7 +94,7 @@ void initializeMemory(){
 		USR_SIZE = pow(2,20) * 6;
 		memoryInitialized = 1;
 		pageSize = sysconf(_SC_PAGESIZE);	//get the page size of this system
-		error = posix_memalign(&memory, pageSize, pow(2,24)); // Create memory that is size of 10 pages
+		error = posix_memalign(&memory, pageSize, pow(2,23) + pageSize); // Create memory that is size of 10 pages
 		if (error != 0){
 			printf("Error Allocating 8MB memory\n");
 			return;
@@ -483,7 +483,7 @@ void coalesce(void * ptr){
 void * getPrevious(void * ptr){
 	//RYAN CHECK THIS BECAUSE IT DIFFERS FROM THE TEXTBOOK
 	void * footer = ptr - 8;
-	int size = (*(int*) footer) & ~1;
+	int size = getOtherSize(footer);
 	// This is the first block. The previous block is the prologue block
 	if ((size == 0) )
 		return NULL;
@@ -533,9 +533,15 @@ void * getFooter(void * p){
 */
 int getSize(void * ptr){
 	int size = (*(int *)getHeader(ptr)) & ~1;
+	size = size >> 1;	
 	return size;
 }
 
+int getOtherSize(void * ptr){
+	int size = (*(int *)(ptr)) & ~1;
+	size = size >> 1;	
+	return size;
+}
 
 /*Gets the allocated bit from the 4 byte header
 	INPUT: char pointer to header
@@ -546,14 +552,24 @@ int getAllocation(void * ptr){
 	return allocated;
 }
 
+int getOtherAllocation(void * ptr){
+	int allocated = (*(int *)(ptr)) & 1;
+	return allocated;
+}
 
 /*  Sets the value of a four byte word based on size and allocation bit
 	INPUT: char pointer, int size, int allocated flag
 	OUTPUT: None
 */
-void setValue(void * p, int size, int allocation){
+void setValue(void * p, int size, int allocation){	
 	int * ptr = (int *) p; 	// Casts to int pointer. Good practice since we are writing ints
+	*ptr = size;
+	*ptr = *ptr << 1;
+	*ptr = *ptr | allocation;
+
+	/*
 	*ptr = size | allocation;
+	*/
 }
 
 

@@ -1,61 +1,22 @@
-//#include <pthread.h>
-#include "my_pthread_t.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include<stdio.h>
+#include"my_pthread_t.h"
 
-#define ITER 1000000
-
-my_pthread_mutex_t lock;
-int c=0;
-
-void* counter(void* a){
-    int i,temp;
-    int z = 3 * pow(2,20);
-    int * pointer = (int *) malloc(3 * pow(2,20));
-    if (pointer == NULL) {
-        printf("no space to malloc\n");
-    }
-
-    for(i=0; i<ITER; i++){
-        my_pthread_mutex_lock(&lock);       
-        temp = c;
-        temp++;
-        c = temp;
-        my_pthread_mutex_unlock(&lock);
-    }
-    my_pthread_exit( 0 );
-    //never happens
+void* myThread(void* p){
+    printf("Hello from thread %d\n", *(int*)p);
+    my_pthread_exit(0);
     return 0;
 }
 
-int main(int argc, char* argv[]){
-    int numThreads=2;
-    int tmp,i;
-    my_pthread_t* threads;
+int main(){
+    my_pthread_t* thread;
+    int id, arg1, arg2;
+    arg1 = 1;
+    thread = (my_pthread_t*) malloc(sizeof(my_pthread_t));
+    id = my_pthread_create(thread, NULL, myThread, (void*)&arg1);
+    //pthread_yield();
+    arg2 = 2;
+    my_pthread_join(*thread, NULL);
+    myThread((void*)&arg2);
     
-
-    if (argc==2){
-        tmp = atoi(argv[1]);
-        if (tmp>0) numThreads = tmp;
-    }
-    threads = (my_pthread_t*) malloc(numThreads * sizeof(my_pthread_t));
-    //initialize lock
-    if (pthread_mutex_init(&lock, NULL) !=0)
-    {
-        printf("mutex init failed\n");
-        exit(1);
-    }
-    //create threads
-    for(i=0; i<numThreads; i++){
-        my_pthread_create(&threads[i], NULL, counter, NULL);
-    }
-    //my_pthread_create(&t1, NULL, counter, NULL);
-    //my_pthread_create(&t2, NULL, counter, NULL);
-    
-    for(i=0; i<numThreads; i++){
-        my_pthread_join(threads[i], NULL);
-    }
-    //my_pthread_join(t2, NULL);
-    printf("counter final val: %d, expecting %d\n", c, ITER*numThreads);
     return 0;
 }
