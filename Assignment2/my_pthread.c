@@ -47,7 +47,7 @@ void timer_handler (int signum){
 
 
 void initializeScheduler(){
-	void *ptr;
+	void *ptr, *initptr;
 	int i;
 	//If this is the first time calling my_pthread_create()
 	if (isInitialized == 0){
@@ -61,6 +61,10 @@ void initializeScheduler(){
 		masterTable = (char *) myallocate(TOTALPAGES*sizeof(char), __FILE__, __LINE__, 69);
 		for (i = 0; i < TOTALPAGES; i++) {
 			masterTable[i] = '0';
+		}
+		for (i = 0; i < MEMORYPAGES; i++) {
+			initptr = memory + OS_SIZE + i*pageSize;
+			mprotect(initptr, pageSize, PROT_NONE);
 		}
 		pageTables[0] = (int16_t *) myallocate(MEMORYPAGES * sizeof(int16_t),__FILE__,__LINE__, 69);
 		my_pthread_t mainThread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for the my_pthread struct
@@ -696,13 +700,17 @@ int my_pthread_join(my_pthread_t thread, void ** value_ptr){
 
 	i = 0;
 	while (pageTables[thread->thread_id][i] != (int16_t) 6969) {
-		pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][i]*pageSize;
-		mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+		if (pageTables[thread->thread_id][i] < MEMORYPAGES) {
+			pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][i]*pageSize;
+			mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+		}
 		masterTable[pageTables[thread->thread_id][i]] = '0';
 		i++;
 	}
-	pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][MEMORYPAGES - 1]*pageSize;
-	mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+	if (pageTables[thread->thread_id][MEMORYPAGES - 1] < MEMORYPAGES) {
+		pagePtr = memory + OS_SIZE + pageTables[thread->thread_id][MEMORYPAGES - 1]*pageSize;
+		mprotect(pagePtr, pageSize, PROT_READ|PROT_WRITE);
+	}
 	masterTable[pageTables[thread->thread_id][MEMORYPAGES - 1]] = '0';
 
 	mydeallocate(pageTables[thread->thread_id], __FILE__, __LINE__, 69);
