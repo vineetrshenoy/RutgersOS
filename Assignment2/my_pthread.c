@@ -179,7 +179,6 @@ void my_pthread_yield(){
 	/*
 		This contains schedule code
 	*/
-
 	
 
 		// setitimer stuff
