@@ -113,7 +113,7 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 
 	int16_t pageIndex, endIndex;
 	void *headerPtr, *footerPtr;
-	int i;
+	int i, sizeOfArg;
 
 	// ------VINEET'S CODE ----
 	*thread = myallocate(sizeof(struct my_pthread_t),__FILE__,__LINE__, 69); //myallocate space for new thread
@@ -154,10 +154,14 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 	pageIndex = nextFreePage();
 	pageTables[(*thread)->thread_id][0] = pageIndex;
 	masterTable[pageIndex] = '1';
+	headerPtr = memory + OS_SIZE + pageIndex*pageSize;
+	mprotect(headerPtr, pageSize, PROT_READ|PROT_WRITE);
 	createPageHeader(pageIndex);
 	endIndex = nextFreePage();
 	pageTables[(*thread)->thread_id][MEMORYPAGES - 1] = endIndex;
 	masterTable[endIndex] = '1';
+	footerPtr = memory + OS_SIZE + (endIndex)*pageSize;
+	mprotect(footerPtr, pageSize, PROT_READ|PROT_WRITE);
 	createPageFooter(endIndex);
 	for (i = 1; i < MEMORYPAGES - 1; i++) {
 		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
@@ -167,9 +171,8 @@ int my_pthread_create(my_pthread_t *thread, my_pthread_attr_t * attr, void * (*f
 		pageTables[(*thread)->thread_id][i] = (int16_t) 6969;
 	}
 	*/
-	headerPtr = memory + OS_SIZE + pageIndex*pageSize;
+	
 	mprotect(headerPtr, pageSize, PROT_NONE);
-	footerPtr = memory + OS_SIZE + (endIndex)*pageSize;
 	mprotect(footerPtr, pageSize, PROT_NONE);
 	
 	my_pthread_yield();
