@@ -307,45 +307,45 @@ void my_pthread_yield(){
 			// 	isInitialized = 0;
 			// }
 			i = 0;
-				while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
-					if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
-						j = 0;
-						while(pageTables[j]) {
-							for (k = 0; k < MEMORYPAGES; k++) {
-								if (pageTables[j][k] == (int16_t) i) {
-									newAddr = swap_out((int16_t) i);
-									// masterTable[i] = '0';
-									pageTables[j][k] = newAddr;
-									masterTable[newAddr] = '1';
-									break;
-								}
-							}
-							j++;
-						}
-						swap_in(pageTables[current_thread->thread_id][i], i);
-						masterTable[pageTables[current_thread->thread_id][i]] = '0';
-					}
-					pageTables[current_thread->thread_id][i] = (int16_t) i;
-					masterTable[i] = '1';
-					i++;
-				}
-				if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+			while(pageTables[current_thread->thread_id][i] != (int16_t) 6969) {
+				if (pageTables[current_thread->thread_id][i] != (int16_t) i) {
 					j = 0;
-					while (pageTables[j]) {
-						if(pageTables[j][MEMORYPAGES - 1] == (int16_t) (MEMORYPAGES - 1)) {
-							newAddr = swap_out((int16_t) (MEMORYPAGES - 1));
-							// masterTable[MEMORYPAGES - 1] = '0';
-							pageTables[j][MEMORYPAGES - 1] = newAddr;
-							masterTable[newAddr] = '1';
-							break;
+					while(pageTables[j]) {
+						for (k = 0; k < MEMORYPAGES; k++) {
+							if (pageTables[j][k] == (int16_t) i) {
+								newAddr = swap_out((int16_t) i);
+								// masterTable[i] = '0';
+								pageTables[j][k] = newAddr;
+								masterTable[newAddr] = '1';
+								break;
+							}
 						}
 						j++;
 					}
-					swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
-					masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+					swap_in(pageTables[current_thread->thread_id][i], i);
+					masterTable[pageTables[current_thread->thread_id][i]] = '0';
 				}
-				pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
-				masterTable[MEMORYPAGES - 1] = '1';
+				pageTables[current_thread->thread_id][i] = (int16_t) i;
+				masterTable[i] = '1';
+				i++;
+			}
+			if (pageTables[current_thread->thread_id][MEMORYPAGES - 1] != (int16_t) (MEMORYPAGES - 1)) { 
+				j = 0;
+				while (pageTables[j]) {
+					if(pageTables[j][MEMORYPAGES - 1] == (int16_t) (MEMORYPAGES - 1)) {
+						newAddr = swap_out((int16_t) (MEMORYPAGES - 1));
+						// masterTable[MEMORYPAGES - 1] = '0';
+						pageTables[j][MEMORYPAGES - 1] = newAddr;
+						masterTable[newAddr] = '1';
+						break;
+					}
+					j++;
+				}
+				swap_in(pageTables[current_thread->thread_id][MEMORYPAGES - 1], MEMORYPAGES - 1);
+				masterTable[pageTables[current_thread->thread_id][MEMORYPAGES - 1]] = '0';
+			}
+			pageTables[current_thread->thread_id][MEMORYPAGES - 1] = (int16_t) (MEMORYPAGES - 1);
+			masterTable[MEMORYPAGES - 1] = '1';
 			setcontext(current_thread->context);
 		}else if (current->thread_id != current_thread->thread_id){
 			// current is main thread
