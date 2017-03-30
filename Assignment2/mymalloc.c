@@ -88,6 +88,7 @@ static void seg_handler(int sig, siginfo_t * si, void * unused){
 		i++;
 
 	}
+	exit(EXIT_FAILURE);
 
 }	
 
@@ -272,9 +273,9 @@ void * myallocate(size_t size, char * b, int a, int id){
 		
 		if (whichMemory == memory + OS_SIZE){
 
-			headerPage = (int16_t) (headerAddress - (memory + OS_SIZE))/pageSize;
+			headerPage = (int16_t) ((headerAddress - (memory + OS_SIZE))/pageSize);
 				
-			footerPage = (int16_t) (footerAddress - (memory + OS_SIZE))/pageSize;
+			footerPage = (int16_t) ((footerAddress - (memory + OS_SIZE))/pageSize);
 			
 			void * pagePointer;
 			int16_t i = 0;
