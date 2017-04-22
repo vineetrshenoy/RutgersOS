@@ -54,5 +54,9 @@ typedef struct{
 int get_bitmap_info(int total_size, metadata_info * info);
 int check_inode_status(int inode_number);
 int set_inode_status(int inode_number, int status);
+int check_dataregion_status(int datablock_number);
+int set_dataregion_status(int datablock_number, int status);
+
+
 
 #endif

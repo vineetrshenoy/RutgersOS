@@ -119,11 +119,69 @@ int set_inode_status(int inode_number, int status){
 
 }
 
-int main(){
-	
 
 
+/*
+	Checks the status of a specific inode. Returns this value
 	
+
+	INPUT: The inode number to check
+	OUTPUT: The status (1 allocated, 0 unallocated)
+
+*/
+int check_dataregion_status(int datablock_number){
+
+	int blk_number = datablock_number/(BITS_PER_BLOCK);	//Finds out in which block bit is
+	block_read(info.dataregion_bitmap_start + blk_number, buffer);	//reads the block
+
+	int byte_offset = (datablock_number - (BITS_PER_BLOCK * blk_number)) / BITS_PER_BYTE; //Finds how many bytes from begining that specific bit is
+	char * ptr = buffer + byte_offset; 
+	char data_bits = *ptr; //Obtains 8 bits in which desired bit is contained
+
+	int bit_offset = datablock_number - (BITS_PER_BLOCK * blk_number) - (byte_offset * BITS_PER_BYTE); //where in the 8 bits the desired is lcoated
+	int bit = ZERO_INDEX_BITS - bit_offset;	//counting offset from the MSB
+	
+
+	bit = (data_bits & ( 1 << bit )) >> bit; //Gets the required bit
+		
+	return bit;
+}
+
+
+/*
+	Sets the status of a specific inode. Returns this value
+	
+
+	INPUT: The inode number to set, the value to set it to
+	OUTPUT: The status (1 allocated, 0 unallocated)
+
+*/
+int set_dataregion_status(int datablock_number, int status){
+
+	int blk_number = datablock_number/(BITS_PER_BLOCK);	//Finds out in which block bit is
+	block_read(info.dataregion_bitmap_start + blk_number, buffer);	//reads the block
+
+	int byte_offset = (datablock_number - (BITS_PER_BLOCK * blk_number)) / BITS_PER_BYTE;//Finds how many bytes from begining that specific bit is
+	char * ptr = buffer + byte_offset;
+	char data_bits = *ptr; //Obtains 8 bits in which desired bit is contained
+
+	int bit_offset = datablock_number - (BITS_PER_BLOCK * blk_number) - (byte_offset * BITS_PER_BYTE); //where in the 8 bits the desired is lcoated
+	int bit = ZERO_INDEX_BITS - bit_offset;
+
+	data_bits ^= (-status ^ data_bits) & (1 << bit); //sets the required bit
+	*ptr = data_bits;	//puts set of 8 bits back into buffer
+	block_write(info.dataregion_bitmap_start + blk_number, buffer); //writes block back to file
+	return 0;
+
+}
+
+
+
+
+
+
+
+int main(){	
 	
 	
 	inode_entry entry;
@@ -189,24 +247,24 @@ int main(){
 
 	printf("------------------------------\n");
 
-	int x = check_inode_status(10000);
-	int y = check_inode_status(10001);
-	int z = check_inode_status(10002);
+	int x = check_dataregion_status(3001);
+	int y = check_dataregion_status(3002);
+	int z = check_dataregion_status(3003);
 	
-	printf("The inode status before is: %d and %d and %d\n", x, y, z);
+	printf("The data region status before is: %d and %d and %d\n", x, y, z);
 
-
-	set_inode_status(10000, 0);
-	set_inode_status(10001, 1);
-	set_inode_status(10002, 0);
-
-
-	x = check_inode_status(10000);
-	y = check_inode_status(10001);
-	z = check_inode_status(10002);
 	
-	printf("The inode status after is: %d and %d and %d\n", x, y, z);
+	set_dataregion_status(3001, 1);
+	set_dataregion_status(3002, 0);
+	set_dataregion_status(3003, 1);
 
+
+	x = check_dataregion_status(3001);
+	y = check_dataregion_status(3002);
+	z = check_dataregion_status(3003);
+	
+	printf("The dataregion status after is: %d and %d and %d\n", x, y, z);
+	
 
 	printf("About to close disk\n");
 	disk_close(filepath);
