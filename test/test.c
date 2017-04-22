@@ -57,6 +57,9 @@ int get_bitmap_info(int total_size, metadata_info * info){
 	info->dataregion_bitmap_start = 1;
 	info->inode_bitmap_start = 1 + info->dataregion_bitmap_blocks;
 
+	info->inode_blocks_start = 1 + info->dataregion_bitmap_blocks + info->inode_bitmap_blocks;
+	info->dataregion_blocks_start = 1 + info->dataregion_bitmap_blocks + info->inode_bitmap_blocks + info->inode_blocks;
+
 
 	return 0;
 

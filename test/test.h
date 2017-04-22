@@ -16,6 +16,7 @@
 #define BLOCK_SIZE 512
 #define BITS_PER_BLOCK 4096
 #define BITS_PER_BYTE 8
+#define INODES_PER_BLOCK 8
 #define ZERO_INDEX_BITS 7
 #define VALUE 513
 
@@ -40,14 +41,15 @@ typedef struct{
 
 
 typedef struct{
-
-	int inode_bitmap_blocks;
-	int inode_bitmap_start;
+	
 	int dataregion_bitmap_blocks;
 	int dataregion_bitmap_start;
-	int dataregion_blocks;
+	int inode_bitmap_blocks;
+	int inode_bitmap_start;
 	int inode_blocks;
-	
+	int inode_blocks_start;
+	int dataregion_blocks;
+	int dataregion_blocks_start;
 
 }metadata_info;
 
