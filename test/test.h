@@ -42,14 +42,14 @@ typedef struct{
 
 typedef struct{
 	
-	int dataregion_bitmap_blocks;
-	int dataregion_bitmap_start;
-	int inode_bitmap_blocks;
-	int inode_bitmap_start;
-	int inode_blocks;
-	int inode_blocks_start;
-	int dataregion_blocks;
-	int dataregion_blocks_start;
+	int dataregion_bitmap_blocks; //How many block needed for dataregion bitmap
+	int dataregion_bitmap_start; // Which block does the dataregion bitmap start
+	int inode_bitmap_blocks;	//How many blocks needed for inode bitmap
+	int inode_bitmap_start;	//which block does the inode bitmap start
+	int inode_blocks;	//How many blocks needed for inodes
+	int inode_blocks_start;	//which block does the inodes start
+	int dataregion_blocks;	//How many data region blocks are needed
+	int dataregion_blocks_start; //what block does the data region start
 
 }metadata_info;
 

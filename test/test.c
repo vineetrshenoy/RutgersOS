@@ -179,6 +179,13 @@ int set_dataregion_status(int datablock_number, int status){
 
 }
 
+/*
+	Gets a copy of the specified inode at returns it to the user
+
+	INPUT: The inode number that is requested
+	OUTPUT: A struct containing the inode
+
+*/
 
 inode get_inode(int inode_number){
 		
@@ -193,6 +200,13 @@ inode get_inode(int inode_number){
 	
 }
 
+/*
+	Sets a certain inode in the metadata region
+
+	INPUT: The inode number to write to, the inode itself
+	OUTPUT: none
+
+*/
 void set_inode(int inode_number, inode node){
 
 	int blk_number = inode_number / INODES_PER_BLOCK; // Finds which block to read
