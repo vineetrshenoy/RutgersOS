@@ -58,7 +58,8 @@ int check_inode_status(int inode_number);
 int set_inode_status(int inode_number, int status);
 int check_dataregion_status(int datablock_number);
 int set_dataregion_status(int datablock_number, int status);
-
+inode get_inode(int inode_number);
+void set_inode(int inode_number, inode node);
 
 
 #endif

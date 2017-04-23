@@ -2,6 +2,7 @@
 
 
 char buffer[BLOCK_SIZE];
+inode_entry entry_buffer;
 struct stat s;
 metadata_info info; 
 char * filepath = "/home/vshenoy/Rutgers/RutgersOS/test/fsfile";
@@ -179,18 +180,46 @@ int set_dataregion_status(int datablock_number, int status){
 }
 
 
+inode get_inode(int inode_number){
+		
+	inode node;
+	int blk_number = inode_number / INODES_PER_BLOCK; // Finds which block to read
+	block_read(info.inode_blocks_start + blk_number, &entry_buffer); // Reads the block
+	
+	
+	int offset = inode_number - (INODES_PER_BLOCK * blk_number);
+	node = (entry_buffer.list[offset]);
+	return node;
+	
+}
 
+void set_inode(int inode_number, inode node){
 
+	int blk_number = inode_number / INODES_PER_BLOCK; // Finds which block to read
+	block_read(info.inode_blocks_start + blk_number, &entry_buffer); // Reads the block
+	
+	
+	int offset = inode_number - (INODES_PER_BLOCK * blk_number);
+	entry_buffer.list[offset] = node;
+	block_write(info.inode_blocks_start + blk_number, &entry_buffer);
+	
+}
 
 
 
 int main(){	
 	
-	
+	inode nodeOne, nodeTwo, nodeThree;
 	inode_entry entry;
 	int i, count;
 	count = 0;
-	entry.list[0].size = 9999;
+	
+	for (i = 0; i < 8; i++){
+		entry.list[i].size = 1010;
+		entry.list[i].indirect_ptr = 999;
+	}
+
+
 	int entry_size = sizeof(entry);
 	printf("The inode entry size is %d \n", entry_size);
 	
@@ -240,12 +269,12 @@ int main(){
 
 	printf("Writing the inode blocks\n");
 	for (i = 0; i < info.inode_blocks; i++){
-		block_write(count, entry);
+		block_write(count, &entry);
 		count++;
 	}
 
 
-	block_read(8, buffer);
+	//block_read(8, buffer);
 	//printf("The size is %d\n", entry.list[0].size);
 
 	printf("------------------------------\n");
@@ -268,6 +297,30 @@ int main(){
 	
 	printf("The dataregion status after is: %d and %d and %d\n", x, y, z);
 	
+	printf("\n");
+	printf("\n");
+	printf("\n");
+
+	nodeOne = get_inode(0);
+	nodeTwo = get_inode(5000);
+	nodeThree = get_inode(10000);
+
+	printf("The old size of inodes 0, 5000, and 10000 are %d, %d, %d\n", nodeOne.size, nodeTwo.size, nodeThree.size);
+
+	nodeOne.size = 9999;
+	nodeTwo.size = 8888;
+	nodeThree.size = 7777;
+
+	set_inode(0, nodeOne);
+	set_inode(5000, nodeTwo);
+	set_inode(10000,nodeThree);
+
+	nodeOne = get_inode(0);
+	nodeTwo = get_inode(5000);
+	nodeThree = get_inode(10000);
+	
+	printf("The new size of inodes 0, 5000, and 10000 are %d, %d, %d\n", nodeOne.size, nodeTwo.size, nodeThree.size);
+
 
 	printf("About to close disk\n");
 	disk_close(filepath);
