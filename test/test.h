@@ -37,7 +37,7 @@ typedef struct{
 	inode list[8];
 	
 
-}inode_entry;
+}inode_block;
 
 
 typedef struct{
@@ -48,12 +48,25 @@ typedef struct{
 	int inode_bitmap_start;	//which block does the inode bitmap start
 	int inode_blocks;	//How many blocks needed for inodes
 	int inode_blocks_start;	//which block does the inodes start
+	int total_inodes;
 	int dataregion_blocks;	//How many data region blocks are needed
 	int dataregion_blocks_start; //what block does the data region start
+	int disksize;
+	int random[6];
 
 }metadata_info;
 
-int get_bitmap_info(int total_size, metadata_info * info);
+
+
+typedef struct{
+	
+	metadata_info list[8];
+
+}super_block;
+
+
+
+int get_metadata_info(int total_size, metadata_info * info);
 int check_inode_status(int inode_number);
 int set_inode_status(int inode_number, int status);
 int check_dataregion_status(int datablock_number);

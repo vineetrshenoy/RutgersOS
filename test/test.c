@@ -2,7 +2,7 @@
 
 
 char buffer[BLOCK_SIZE];
-inode_entry entry_buffer;
+inode_block entry_buffer;
 struct stat s;
 metadata_info info; 
 char * filepath = "/home/vshenoy/Rutgers/RutgersOS/test/fsfile";
@@ -29,7 +29,7 @@ extern int diskfile;
 	OUTPUT: 0 on success
 
 */
-int get_bitmap_info(int total_size, metadata_info * info){
+int get_metadata_info(int total_size, metadata_info * info){
 
 	// ----------------------------------------------
 	//This gets just the information for the data regions 
@@ -51,9 +51,13 @@ int get_bitmap_info(int total_size, metadata_info * info){
 	int inode_bitmap = ceil((double) num_metadata_blocks / VALUE); //gets the number of inodes. See documentation
 	num_metadata_blocks = num_metadata_blocks - inode_bitmap;
 
+
+
+	info->disksize = total_size;
 	info->inode_blocks = num_metadata_blocks;
 	info->inode_bitmap_blocks = inode_bitmap;
 	
+	info->total_inodes = info->inode_blocks * INODES_PER_BLOCK;
 
 	info->dataregion_bitmap_start = 1;
 	info->inode_bitmap_start = 1 + info->dataregion_bitmap_blocks;
@@ -220,21 +224,87 @@ void set_inode(int inode_number, inode node){
 }
 
 
+int sfs_init(){
+
+	inode node;
+	inode_block block;
+	super_block sblock;
+	int count;
+
+	disk_open(filepath);
+	count = 0;
+
+	//clearing all fields for the node
+	int i;	
+	node.size = 0;
+	node.indirect_ptr = 0;
+	node.test = 0;
+	node.flags = 0;
+	
+
+	for(i = 0; i < 12; i++){
+		node.direct_ptrs[i] = 0;
+	}
+
+	//clearing all fields for the inode_entry
+	for(i = 0; i < 8; i++){
+		block.list[i] = node;
+	}
+
+
+	fstat(diskfile, &s); //get file information
+	get_metadata_info(s.st_size, &info);
+
+	sblock.list[0] = info;
+
+	printf("Writing the superblock\n");
+	block_write(count, &sblock);
+	count++;
+
+	printf("Writing the data bitmap\n");
+	for (i = 0; i < info.dataregion_bitmap_blocks; i++){
+		block_write(count, buffer);
+		count++;
+	}
+
+	printf("Writing the inode bitmap\n");
+	for (i = 0; i < info.inode_bitmap_blocks; i++){
+		block_write(count, buffer);
+		count++;
+	}
+
+	printf("Writing the inode blocks\n");
+	for (i = 0; i < info.inode_blocks; i++){
+		block_write(count, &block);
+		count++;
+	}
+
+}
+	
+
+
+
+
+
 
 int main(){	
 	
+	//sfs_init();
 	inode nodeOne, nodeTwo, nodeThree;
-	inode_entry entry;
+	inode_block entry;
+	super_block sblock;
+	super_block sblock2;
 	int i, count;
 	count = 0;
-	
+	int metasize = sizeof(info);
+	sfs_init();
 	for (i = 0; i < 8; i++){
 		entry.list[i].size = 1010;
 		entry.list[i].indirect_ptr = 999;
 	}
 
 
-	int entry_size = sizeof(entry);
+	int entry_size = sizeof(info);
 	printf("The inode entry size is %d \n", entry_size);
 	
 
@@ -249,7 +319,7 @@ int main(){
 
 	printf("The disk size is %d\n", size);
 
-	get_bitmap_info(size, &info);
+	get_metadata_info(size, &info);
 
 	char * ptr = buffer;
 	for (i = 0; i < 512; i++){
@@ -265,9 +335,14 @@ int main(){
 	printf("\n");
 	printf("\n");
 
+	sblock.list[0] = info;
+
 	printf("Writing the superblock\n");
-	block_write(0, buffer);
+	block_write(0, &sblock);
 	count++;
+
+	block_read(0, &sblock2);
+
 
 	printf("Writing the data bitmap\n");
 	for (i = 0; i < info.dataregion_bitmap_blocks; i++){
@@ -290,6 +365,27 @@ int main(){
 
 	//block_read(8, buffer);
 	//printf("The size is %d\n", entry.list[0].size);
+
+	printf("------------------------------\n");
+
+	int a = check_inode_status(2500);
+	int b = check_inode_status(2501);
+	int c = check_inode_status(2502);
+	
+	printf("The inode region status before is: %d and %d and %d\n", a, b, c);
+
+	
+	set_inode_status(2500, 0);
+	set_inode_status(2501, 1);
+	set_inode_status(2502, 0);
+
+
+	a = check_inode_status(2500);
+	b = check_inode_status(2501);
+	c = check_inode_status(2502);
+	
+	printf("The inode region status before is: %d and %d and %d\n", a, b, c);
+
 
 	printf("------------------------------\n");
 
