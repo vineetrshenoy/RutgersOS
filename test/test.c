@@ -24,7 +24,6 @@ extern int diskfile;
 /*
 	This function initializes all the structure: 25% is for metadata, 75% for data
 	
-
 	INPUT: The total size of the file, metadata_info pointer to store metadata value
 	OUTPUT: 0 on success
 
@@ -48,7 +47,8 @@ int get_metadata_info(int total_size, metadata_info * info){
 	int num_metadata_blocks = metadata_size / (BLOCK_SIZE); //Number of blocks based on size
 	num_metadata_blocks = num_metadata_blocks - data_bitmap_blocks - 1; // Total blocks minus data_bitmap_blocks minus superblock
 
-	int inode_bitmap = ceil((double) num_metadata_blocks / VALUE); //gets the number of inodes. See documentation
+	int inode_bitmap = (num_metadata_blocks / VALUE) + 1;
+	//int inode_bitmap = ceil((double) num_metadata_blocks / VALUE); //gets the number of inodes. See documentation
 	num_metadata_blocks = num_metadata_blocks - inode_bitmap;
 
 
@@ -231,7 +231,7 @@ int sfs_init(){
 	super_block sblock;
 	int count;
 
-	disk_open(filepath);
+	disk_open(filepath); //opens the disk
 	count = 0;
 
 	//clearing all fields for the node
@@ -253,9 +253,9 @@ int sfs_init(){
 
 
 	fstat(diskfile, &s); //get file information
-	get_metadata_info(s.st_size, &info);
+	get_metadata_info(s.st_size, &info); //gets all the metadata info
 
-	sblock.list[0] = info;
+	sblock.list[0] = info; //setting the superblock
 
 	printf("Writing the superblock\n");
 	block_write(count, &sblock);
@@ -284,11 +284,55 @@ int sfs_init(){
 
 
 
+int parsePath(char * filepath, char ** strings){
+
+	int length = strlen(filepath);
+	int i, count;
+	char slash = 47;
+	count = 0;
+
+	//Figures out how many "/" are present -- stores in count
+	for (i = 0; i < length; i++){
+		printf("character is %c\n", filepath[i]);
+		if (filepath[i] == slash)
+			count++;
+	
+	}
+	
+
+	int * indices = (int * ) malloc ((count + 1) * sizeof(int)); //stores the index of each slash
+	int j = 0;
+	for (i = 0; i < length; i++){
+
+		if (filepath[i] == slash){
+			indices[j] = i;
+			j++;
+		}
+
+		
+	}
+	indices[count] = length; 
+
+	strings = (char **) malloc(count * sizeof(char *)); //MUST FREE THIS LATER
+
+	for (i = 0; i < count; i++){
+		int size = (indices[i + 1] - indices[i]);
+		strings[i] = (char *) malloc(sizeof(char) * size);
+		strncpy(strings[i], (filepath + indices[i] + 1), (size - 1));
+		
+	}
+	free(indices);
+	
+	return count;
+
+}
+
 
 
 
 int main(){	
 	
+		
 	//sfs_init();
 	inode nodeOne, nodeTwo, nodeThree;
 	inode_block entry;
