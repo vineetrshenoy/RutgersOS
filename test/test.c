@@ -5,7 +5,7 @@ char buffer[BLOCK_SIZE];
 inode_block entry_buffer;
 struct stat s;
 metadata_info info; 
-char * filepath = "/home/vshenoy/Rutgers/RutgersOS/test/fsfile";
+char * path = "/home/vshenoy/Rutgers/RutgersOS/test/fsfile";
 
 extern int diskfile;
 
@@ -26,7 +26,6 @@ extern int diskfile;
 	
 	INPUT: The total size of the file, metadata_info pointer to store metadata value
 	OUTPUT: 0 on success
-
 */
 int get_metadata_info(int total_size, metadata_info * info){
 
@@ -47,8 +46,10 @@ int get_metadata_info(int total_size, metadata_info * info){
 	int num_metadata_blocks = metadata_size / (BLOCK_SIZE); //Number of blocks based on size
 	num_metadata_blocks = num_metadata_blocks - data_bitmap_blocks - 1; // Total blocks minus data_bitmap_blocks minus superblock
 
-	int inode_bitmap = (num_metadata_blocks / VALUE) + 1;
-	//int inode_bitmap = ceil((double) num_metadata_blocks / VALUE); //gets the number of inodes. See documentation
+	int inode_bitmap =  num_metadata_blocks / VALUE; //gets the number of inodes. See documentation
+	  if (inode_bitmap % VALUE != 0){
+	    inode_bitmap++;
+	  }
 	num_metadata_blocks = num_metadata_blocks - inode_bitmap;
 
 
@@ -64,7 +65,7 @@ int get_metadata_info(int total_size, metadata_info * info){
 
 	info->inode_blocks_start = 1 + info->dataregion_bitmap_blocks + info->inode_bitmap_blocks;
 	info->dataregion_blocks_start = 1 + info->dataregion_bitmap_blocks + info->inode_bitmap_blocks + info->inode_blocks;
-
+	info->rootdirectory = 0;
 
 	return 0;
 
@@ -76,10 +77,8 @@ int get_metadata_info(int total_size, metadata_info * info){
 /*
 	Checks the status of a specific inode. Returns this value
 	
-
 	INPUT: The inode number to check
 	OUTPUT: The status (1 allocated, 0 unallocated)
-
 */
 int check_inode_status(int inode_number){
 
@@ -103,10 +102,8 @@ int check_inode_status(int inode_number){
 /*
 	Sets the status of a specific inode. Returns this value
 	
-
 	INPUT: The inode number to set, the value to set it to
 	OUTPUT: The status (1 allocated, 0 unallocated)
-
 */
 int set_inode_status(int inode_number, int status){
 
@@ -132,10 +129,8 @@ int set_inode_status(int inode_number, int status){
 /*
 	Checks the status of a specific inode. Returns this value
 	
-
 	INPUT: The inode number to check
 	OUTPUT: The status (1 allocated, 0 unallocated)
-
 */
 int check_dataregion_status(int datablock_number){
 
@@ -159,10 +154,8 @@ int check_dataregion_status(int datablock_number){
 /*
 	Sets the status of a specific inode. Returns this value
 	
-
 	INPUT: The inode number to set, the value to set it to
 	OUTPUT: The status (1 allocated, 0 unallocated)
-
 */
 int set_dataregion_status(int datablock_number, int status){
 
@@ -185,10 +178,8 @@ int set_dataregion_status(int datablock_number, int status){
 
 /*
 	Gets a copy of the specified inode at returns it to the user
-
 	INPUT: The inode number that is requested
 	OUTPUT: A struct containing the inode
-
 */
 
 inode get_inode(int inode_number){
@@ -206,10 +197,8 @@ inode get_inode(int inode_number){
 
 /*
 	Sets a certain inode in the metadata region
-
 	INPUT: The inode number to write to, the inode itself
 	OUTPUT: none
-
 */
 void set_inode(int inode_number, inode node){
 
@@ -231,7 +220,7 @@ int sfs_init(){
 	super_block sblock;
 	int count;
 
-	disk_open(filepath); //opens the disk
+	disk_open(path);
 	count = 0;
 
 	//clearing all fields for the node
@@ -253,9 +242,9 @@ int sfs_init(){
 
 
 	fstat(diskfile, &s); //get file information
-	get_metadata_info(s.st_size, &info); //gets all the metadata info
+	get_metadata_info(s.st_size, &info);
 
-	sblock.list[0] = info; //setting the superblock
+	sblock.list[0] = info;
 
 	printf("Writing the superblock\n");
 	block_write(count, &sblock);
@@ -280,60 +269,240 @@ int sfs_init(){
 	}
 
 }
-	
 
+// Get number of directories in a filepath
 
-
-int parsePath(char * filepath, char ** strings){
-
-	int length = strlen(filepath);
-	int i, count;
-	char slash = 47;
-	count = 0;
-
-	//Figures out how many "/" are present -- stores in count
-	for (i = 0; i < length; i++){
-		printf("character is %c\n", filepath[i]);
-		if (filepath[i] == slash)
-			count++;
-	
-	}
-	
-
-	int * indices = (int * ) malloc ((count + 1) * sizeof(int)); //stores the index of each slash
-	int j = 0;
-	for (i = 0; i < length; i++){
-
-		if (filepath[i] == slash){
-			indices[j] = i;
-			j++;
-		}
-
-		
-	}
-	indices[count] = length; 
-
-	strings = (char **) malloc(count * sizeof(char *)); //MUST FREE THIS LATER
-
-	for (i = 0; i < count; i++){
-		int size = (indices[i + 1] - indices[i]);
-		strings[i] = (char *) malloc(sizeof(char) * size);
-		strncpy(strings[i], (filepath + indices[i] + 1), (size - 1));
-		
-	}
-	free(indices);
-	
-	return count;
-
+int get_num_dirs(const char * path){
+  int length = strlen(path);
+  char slash = 47;
+  int i, count;
+  count = 0;
+  for (i = 0; i < length; i++){
+    if (path[i] == slash)
+      count++;
+  }
+  return count;
 }
 
+// Parse a path
 
+char ** parsePath(const char * path){
 
+  int length = strlen(path);
+  int i, count;
+  char slash = 47;
+  count = 0;
 
-int main(){	
-	
+  //Figures out how many "/" are present -- stores in count
+  for (i = 0; i < length; i++){
+    if (path[i] == slash)
+      count++;
+  }
+  
+
+  int * indices = (int * ) malloc ((count + 1) * sizeof(int)); //stores the index of each slash
+  int j = 0;
+  for (i = 0; i < length; i++){
+
+    if (path[i] == slash){
+      indices[j] = i;
+      j++;
+    }
+
+    
+  }
+  indices[count] = length; 
+
+  char ** strings = (char **) malloc(count * sizeof(char *)); //MUST FREE THIS LATER
+
+  for (i = 0; i < count; i++){
+    int size = (indices[i + 1] - indices[i]);
+    strings[i] = (char *) malloc(sizeof(char) * size);
+    strncpy(strings[i], (path + indices[i] + 1), (size - 1));
+    
+  }
+  free(indices);
+  
+  return strings;
+
+}
+/*	
+// Get inode number given a path.
+int findInode(const char *path) {
+
+  super_block sblock;
+  block_read(0, &sblock);
+  int dataRegionOffset = sblock.list[0].dataregion_blocks_start;
+  filepath_block rblock;
+  block_read(dataRegionOffset, &rblock);
+  int inodeNum = rblock.inode;
+  int inodeBlock = ceil(inodeNum/8);
+  int inodeOffset = inodeNum - (inodeBlock - 1)*8;
+  int numOfDirs = get_num_dirs(path);
+  char ** fldrs = parsePath(path);
+  inode_block iblock;
+  filepath_block fblock;
+  int i, j, gotem;
+  inode node;
+  // go through each inode of each folder in the path to find the inode for the path
+  for (i = 0; i < numOfDirs; i++) {
+    block_read(inodeBlock, &iblock);
+    node = iblock.list[inodeOffset];
+    gotem = 0;
+    // check each direct_ptr in inode until the correct folder is found
+    for (j = 0; j < 12; j++) {
+      block_read(node.direct_ptrs[j], &fblock);
+      if (strcmp(fblock.filepath, fldrs[i]) == 0) {
+        gotem = 1;
+        break;
+      }
+    }
+    if (gotem == 1) {
+      inodeNum = fblock.inode;
+      if (i == numOfDirs - 1) {
+        break;
+      }
+      inodeBlock = ceil(inodeNum/8);
+      inodeOffset = inodeNum - (inodeBlock - 1)*8;
+    }
+    else {
+      // do indirect ptr stuff
+    }
+  }
+  for (i = 0; i < numOfDirs; i++) {
+    free(fldrs[i]);
+  }
+  return inodeNum;
+}
+*/
+/*
+int sfs_getattr(struct stat *statbuf) {
+	int retstat = 0;
+    char fpath[PATH_MAX];
+    
+   log_msg("\nsfs_getattr(path=\"%s\", statbuf=0x%08x)\n",
+	  path, statbuf);
+
+    memset(statbuf, 0, sizeof(struct stat)); // initialize buffer
+    statbuf->st_dev = 0;
+    statbuf->st_blksize = 0;
+    statbuf->st_ino = 0;
+    memset(&fpath, '?', PATH_MAX);  // initialize fpath before copying path into it so the final character can be found
+    int i = 0;
+    while (path[i]) {
+    	fpath[i] = path[i];
+    	i++;
+    }
+    char finalChar;
+    for (i = 0; i < PATH_MAX; i++) {
+      if (fpath[i] == '?') {
+        finalChar = fpath[i - 1];
+        break;
+      }
+    }
+
+    if (strcmp(path, "/") == 0 || strcmp(finalChar, "/") == 0) {
+      statbuf->st_mode = S_IFDIR | S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+      statbuf->st_nlink = 2;
+    }
+    else {
+      statbuf->st_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+      statbuf->st_nlink = 1;
+    }
+
+    statbuf->st_uid = getuid();
+    statbuf->st_gid = getgid();
+    statbuf->st_rdev = 0;
+    super_block sblock;
+    block_read(0, &sblock);
+    int inodeNum = findInode(path);
+    int inodeBlockOffset = sblock.list[0].inode_blocks_start;
+    int inodeBlock = inodeNum/8;
+    int inodeOffset = inodeNum - inodeBlock*8;
+    inode_block iblock;
+    block_read(inodeBlockOffset + inodeBlock, &iblock);
+    statbuf->st_size = iblock.list[inodeOffset].size;
+    statbuf->st_blocks = ceil(statbuf->st_size/BLOCK_SIZE);
+    statbuf->st_atime = time(NULL);
+    statbuf->st_mtime = time(NULL);
+    statbuf->st_ctime = time(NULL);
+    
+    return retstat;
+}
+*/
+/*
+int sfs_readdir(void *buf, fuse_fill_dir_t filler, off_t offset,
+	       struct fuse_file_info *fi)
+{
+    int retstat = 0;
+    
+    int pathInodeNum = findInode(path);
+    inode pathInode = get_inode(pathInodeNum);
+    int i = 0;
+    directory_block dblock;
+    int fillerReturn;
+    while (pathInode.direct_ptrs[i]) {
+      block_read(pathInode.direct_ptrs[i], &dblock);
+      fillerReturn = filler(buf, dblock.list[0].d_name, NULL, sizeof(struct dirent));
+      if (fillerReturn != 0) {
+        return retstat;
+      }
+    }
+    
+    return retstat;
+}
+*/
+int find_free_datablock(){
+	char data_buffer[BLOCK_SIZE];
+	int i, j;
+	int totalDatablocks = info.dataregion_blocks;
+	for (i = 0; i < totalDatablocks; i++){
+		if (check_dataregion_status(i) == 0)
+			return i;
 		
-	//sfs_init();
+	}
+
+	return -1;
+}
+
+int find_free_inode(){
+	int i;
+	int totalInodes = info.total_inodes;
+	for (i = 0; i < totalInodes; i++){
+		if (check_inode_status(i) == 0)
+			return i;
+		
+	}
+
+	return -1;
+}
+
+int testmain(){
+
+	/*
+	int i;
+	int x = get_num_dirs(path);
+	char ** fldrs = parsePath(path);
+	int y = strlen(fldrs[1]);
+	printf("length is %d\n", y);
+	for (i = 0; i < x; i++)
+		printf("The path is %s\n", fldrs[i]);
+	
+	*/
+	
+
+	/*
+	char * string = "hello";
+	char test[500] = "hello";
+	int x = strcmp(string, test);
+	printf("The string is %s\n", test);
+	printf("The string is %s\n", string);
+	printf("strcmp is %d\n", x);
+	*/
+
+
+
+	/*
 	inode nodeOne, nodeTwo, nodeThree;
 	inode_block entry;
 	super_block sblock;
@@ -353,7 +522,7 @@ int main(){
 	
 
 	//printf("About to open disk\n");
-	disk_open(filepath);
+	disk_open(path);
 	
 	//printf("The disk file is %d\n", diskfile);
 
@@ -475,9 +644,11 @@ int main(){
 	
 	printf("The new size of inodes 0, 5000, and 10000 are %d, %d, %d\n", nodeOne.size, nodeTwo.size, nodeThree.size);
 
+	//printf("size of dirent: %d\n", sizeof(struct dirent));
+	int bit = find_free_inode();
 
 	printf("About to close disk\n");
-	disk_close(filepath);
+	disk_close(path);
 	
 
 	//char * ptr = buffer;
@@ -488,8 +659,6 @@ int main(){
 	printf("\n"BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(byte));
 	printf("\n");
 	int k = 7;
-
-
 	int a = (byte & ( 1 << k )) >> k;
 	printf("The bit %dth bit is %d\n", k, a);
 	/*
@@ -499,5 +668,44 @@ int main(){
 	printf("\n"BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(byte));
 	//number ^= (-x ^ number) & (1 << n);
 	*/
-	
+
 }
+
+int main(){	
+	
+	filepath_block test_filepath;
+	filepath_block other;
+	char * string = "home";
+	//printf("String is %s\n", value);
+	//printf("String is %s\n", test);
+
+	sfs_init();
+
+
+	strcpy(test_filepath.filepath, "home");
+	block_write(info.dataregion_blocks_start, &test_filepath);
+	strcpy(test_filepath.filepath, "vshenoy");
+	block_write(info.dataregion_blocks_start + 1, &test_filepath);
+	strcpy(test_filepath.filepath, "file");
+	block_write(info.dataregion_blocks_start + 2, &test_filepath);
+
+	inode root = get_inode(0);
+	root.direct_ptrs[0] = info.dataregion_blocks_start;
+	root.direct_ptrs[1] = info.dataregion_blocks_start + 1;
+	root.direct_ptrs[2] = info.dataregion_blocks_start + 2;
+	set_inode(0, root);
+
+
+	int i;
+	inode node = get_inode(0);
+	for (i = 0; i < 3; i++){
+		block_read(node.direct_ptrs[i], &other);
+		printf("The string is %s\n", other.filepath);
+	}
+	
+	
+	
+	
+	
+	
+}	
