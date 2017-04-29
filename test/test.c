@@ -246,27 +246,34 @@ int sfs_init(){
 
 	sblock.list[0] = info;
 
-	printf("Writing the superblock\n");
+	//printf("Writing the superblock\n");
 	block_write(count, &sblock);
 	count++;
 
-	printf("Writing the data bitmap\n");
+	//printf("Writing the data bitmap\n");
 	for (i = 0; i < info.dataregion_bitmap_blocks; i++){
 		block_write(count, buffer);
 		count++;
 	}
 
-	printf("Writing the inode bitmap\n");
+	//printf("Writing the inode bitmap\n");
 	for (i = 0; i < info.inode_bitmap_blocks; i++){
 		block_write(count, buffer);
 		count++;
 	}
 
-	printf("Writing the inode blocks\n");
+	//printf("Writing the inode blocks\n");
 	for (i = 0; i < info.inode_blocks; i++){
 		block_write(count, &block);
 		count++;
 	}
+
+	//setting root
+	filepath_block fblock;
+
+	strcpy(fblock.filepath, "/");
+	fblock.inode = 0;
+	block_write(info.dataregion_blocks_start, &fblock);
 
 }
 
@@ -682,15 +689,13 @@ filepath_block find_path_inode(char * path){
 
 	int numOfDirs = get_num_dirs(path); //Gets the number of directories
 	char ** fldrs = parsePath(path);  //Gets the strings for all paths
-
+	block_read(info.dataregion_blocks_start, &block_return);
 	i = 0;
 	//while we still have directories to search
 	while (i < numOfDirs){
 
 		node = get_inode(block_return.inode); //get the inode of the directory
-		//if we haven't started yet, get root
-		if (i == 0)
-			node = get_inode(0);
+		
 
 		char * searchFolder = fldrs[i]; //The current folder we are looking for
 		notfound = 0;
@@ -753,7 +758,24 @@ int create(char * path){
 	newDataBlock = find_free_datablock();
 	set_dataregion_status(newDataBlock, 1);	//set dataregion to allocated
 	strcpy(fblock.filepath, fldrs[numOfDirs - 1]); //copy the new path name to block
-	fblock.inode = newInodeNum;
+	fblock.inode = newInodeNum; //associate data entry with inode field
+
+
+	//finding a directptr for new block
+	int i, ptr;
+
+	inode node = get_inode(block.inode);
+	for (i = 0; i < 12; i++){
+		if (node.direct_ptrs[i] == 0){
+			ptr = i;
+			break
+		}
+	}
+
+	node.direct_ptrs[ptr] = newDataBlock;
+
+
+
 	block_write(newDataBlock, &fblock);	//write the block to disk
 
 	
@@ -763,6 +785,10 @@ int create(char * path){
 int main(){	
 
 
+	
+	
+	
+	
 	filepath_block test_filepath;
 	filepath_block other;
 	char * string = "home";
@@ -771,33 +797,26 @@ int main(){
 
 	sfs_init();
 
-	
+	/*	
 	strcpy(test_filepath.filepath, "home");
 	test_filepath.inode = 1;
-	block_write(info.dataregion_blocks_start, &test_filepath);
+	block_write(info.dataregion_blocks_start + 1, &test_filepath);
 
 	strcpy(test_filepath.filepath, "vshenoy");
 	test_filepath.inode = 2;
-	block_write(info.dataregion_blocks_start + 1, &test_filepath);
-
-	/*
-	strcpy(test_filepath.filepath, "file");
-	test_filepath.inode = 3;
 	block_write(info.dataregion_blocks_start + 2, &test_filepath);
-	*/
+
+	
 
 	inode root = get_inode(0);
-	root.direct_ptrs[0] = info.dataregion_blocks_start;
+	root.direct_ptrs[0] = info.dataregion_blocks_start + 1;
 	set_inode(0, root);
 
 	inode one = get_inode(1);
-	one.direct_ptrs[0] = info.dataregion_blocks_start + 1;
+	one.direct_ptrs[0] = info.dataregion_blocks_start + 2;
 	set_inode(1, one);
 
-	inode two = get_inode(2);
-	one.direct_ptrs[0] = info.dataregion_blocks_start + 2;
-	set_inode(2, two);
-
+	
 	
 	inode a = get_inode(0);
 	block_read(a.direct_ptrs[0], &test_filepath);
@@ -807,17 +826,22 @@ int main(){
 	block_read(b.direct_ptrs[0], &test_filepath);
 	printf("Directory is %s\n", test_filepath.filepath);
 
-	/*
-	inode c = get_inode(2);
-	block_read(c.direct_ptrs[0], &test_filepath);
-	printf("Directory is %s\n", test_filepath.filepath);
 	*/
+
+	
 	char * newPath = "/home/vshenoy";
+	char * newPath2 = "/other/nothing";
 	filepath_block block = find_path_inode(newPath);
 	int numOfDirs = get_num_dirs(newPath);
 	char ** fldrs = parsePath(newPath);
 
 	if (strcmp(fldrs[numOfDirs -1], block.filepath) == 0)
 		printf("Hello\n");
+	printf("The filepath is %s\n", block.filepath);
+
+	int i;
+	for(i = 0; i < numOfDirs; i++)
+		free(fldrs[i]);
+	free(fldrs);
 	
 }	

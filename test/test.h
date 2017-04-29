@@ -26,7 +26,7 @@
 #ifdef NAME_MAX
 #undef NAME_MAX
 #endif
-#define NAME_MAX 252
+#define NAME_MAX 252	
 
 typedef struct{
 
@@ -82,7 +82,7 @@ typedef struct{
 
 typedef struct{
 
-	struct dirent list[2];
+	struct dirent entry;
 
 }directory_block;
 
