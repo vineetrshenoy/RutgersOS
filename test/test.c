@@ -273,6 +273,8 @@ int sfs_init(){
 
 	strcpy(fblock.filepath, "/");
 	fblock.inode = 0;
+	set_inode_status(0,1);
+	set_dataregion_status(0, 1);
 	block_write(info.dataregion_blocks_start, &fblock);
 
 }
@@ -680,7 +682,7 @@ int testmain(){
 
 
 
-filepath_block find_path_inode(char * path){
+filepath_block find_path_block(char * path){
 
 	inode node;
 	filepath_block path_block, block_return;
@@ -733,7 +735,7 @@ filepath_block find_path_inode(char * path){
 	return block_return;
 }
 
-/*
+
 int create(char * path){
 
 	filepath_block block, fblock;
@@ -741,7 +743,7 @@ int create(char * path){
 	int numOfDirs = get_num_dirs(path); //
 	char ** fldrs = parsePath(path); //
 
-	block = find_path_inode(path); //try to find the path
+	block = find_path_block(path); //try to find the path
 	if (strcmp(fldrs[numOfDirs -1], block.filepath) == 0){
 		//the file exists
 		printf("already exists\n");
@@ -768,7 +770,7 @@ int create(char * path){
 	for (i = 0; i < 12; i++){
 		if (node.direct_ptrs[i] == 0){
 			ptr = i;
-			break
+			break;
 		}
 	}
 
@@ -781,7 +783,7 @@ int create(char * path){
 	
 	return 0;
 }
-*/
+
 int main(){	
 
 
@@ -797,14 +799,18 @@ int main(){
 
 	sfs_init();
 
-		
+	
 	strcpy(test_filepath.filepath, "home");
 	test_filepath.inode = 1;
+	set_inode_status(1,1);
 	block_write(info.dataregion_blocks_start + 1, &test_filepath);
+	set_dataregion_status(1, 1);
 
 	strcpy(test_filepath.filepath, "vshenoy");
 	test_filepath.inode = 2;
+	set_inode_status(2,1);
 	block_write(info.dataregion_blocks_start + 2, &test_filepath);
+	set_dataregion_status(2, 1);
 
 	
 
@@ -827,21 +833,26 @@ int main(){
 	printf("Directory is %s\n", test_filepath.filepath);
 
 	
-
+	
 	
 	char * newPath = "/home/vshenoy";
-	char * newPath2 = "/other/nothing";
-	filepath_block block = find_path_inode(newPath);
+	//char * newPath = "/other/nothing";
+	filepath_block block = find_path_block(newPath);
 	int numOfDirs = get_num_dirs(newPath);
 	char ** fldrs = parsePath(newPath);
 
 	if (strcmp(fldrs[numOfDirs -1], block.filepath) == 0)
-		printf("Hello\n");
+		printf("Found the correct directory\n");
 	printf("The filepath is %s\n", block.filepath);
 
 	int i;
 	for(i = 0; i < numOfDirs; i++)
 		free(fldrs[i]);
 	free(fldrs);
+
+	char * createPath = "/home/vshenoy/testfile";
+	create(createPath);
 	
+	block = find_path_block(createPath);
+	printf("The file path is %s\n", block.filepath);
 }	
