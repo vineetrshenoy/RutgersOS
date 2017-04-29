@@ -728,6 +728,38 @@ filepath_block find_path_inode(char * path){
 	return block_return;
 }
 
+/*
+int create(char * path){
+
+	filepath_block block, fblock;
+
+	int numOfDirs = get_num_dirs(path); //
+	char ** fldrs = parsePath(path); //
+
+	block = find_path_inode(path); //try to find the path
+	if (strcmp(fldrs[numOfDirs -1], block.filepath) == 0){
+		//the file exists
+		printf("already exists\n");
+		return -1;
+	}
+
+	//find a free inode
+	int newInodeNum, newDataBlock;
+	
+	newInodeNum = find_free_inode();
+	set_inode_status(newInodeNum, 1);
+	
+
+	newDataBlock = find_free_datablock();
+	set_dataregion_status(newDataBlock, 1);	//set dataregion to allocated
+	strcpy(fblock.filepath, fldrs[numOfDirs - 1]); //copy the new path name to block
+	fblock.inode = newInodeNum;
+	block_write(newDataBlock, &fblock);	//write the block to disk
+
+	
+	return 0;
+}
+*/
 int main(){	
 
 
