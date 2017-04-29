@@ -671,8 +671,66 @@ int testmain(){
 
 }
 
+
+
+filepath_block find_path_inode(char * path){
+
+	inode node;
+	filepath_block path_block, block_return;
+
+	int i,j, notfound;
+
+	int numOfDirs = get_num_dirs(path); //Gets the number of directories
+	char ** fldrs = parsePath(path);  //Gets the strings for all paths
+
+	i = 0;
+	//while we still have directories to search
+	while (i < numOfDirs){
+
+		node = get_inode(block_return.inode); //get the inode of the directory
+		//if we haven't started yet, get root
+		if (i == 0)
+			node = get_inode(0);
+
+		char * searchFolder = fldrs[i]; //The current folder we are looking for
+		notfound = 0;
+		//search all direct pointers in our inode
+		for (j = 0; j < 12; j++){
+
+			//we should always skip 0 (this is root)
+			if (node.direct_ptrs[j] != 0){
+				block_read(node.direct_ptrs[j], &path_block); //read the block
+				//compare the this folder with searchFolder; if match, get next node
+				if (strcmp (searchFolder, path_block.filepath) == 0){
+					block_return = path_block;
+					i++;
+					break;
+				}
+			}
+			notfound++;
+		}
+
+		if (notfound == 12){
+			//Free all ptrs
+			for(i = 0; i < numOfDirs; i++)
+				free(fldrs[i]);
+			free(fldrs);
+
+			return block_return;
+		}
+
+	}
+
+	//Free all ptrs
+	for(i = 0; i < numOfDirs; i++)
+		free(fldrs[i]);
+	free(fldrs);
+	return block_return;
+}
+
 int main(){	
-	
+
+
 	filepath_block test_filepath;
 	filepath_block other;
 	char * string = "home";
@@ -681,31 +739,53 @@ int main(){
 
 	sfs_init();
 
-
+	
 	strcpy(test_filepath.filepath, "home");
+	test_filepath.inode = 1;
 	block_write(info.dataregion_blocks_start, &test_filepath);
+
 	strcpy(test_filepath.filepath, "vshenoy");
+	test_filepath.inode = 2;
 	block_write(info.dataregion_blocks_start + 1, &test_filepath);
+
+	/*
 	strcpy(test_filepath.filepath, "file");
+	test_filepath.inode = 3;
 	block_write(info.dataregion_blocks_start + 2, &test_filepath);
+	*/
 
 	inode root = get_inode(0);
 	root.direct_ptrs[0] = info.dataregion_blocks_start;
-	root.direct_ptrs[1] = info.dataregion_blocks_start + 1;
-	root.direct_ptrs[2] = info.dataregion_blocks_start + 2;
 	set_inode(0, root);
 
+	inode one = get_inode(1);
+	one.direct_ptrs[0] = info.dataregion_blocks_start + 1;
+	set_inode(1, one);
 
-	int i;
-	inode node = get_inode(0);
-	for (i = 0; i < 3; i++){
-		block_read(node.direct_ptrs[i], &other);
-		printf("The string is %s\n", other.filepath);
-	}
+	inode two = get_inode(2);
+	one.direct_ptrs[0] = info.dataregion_blocks_start + 2;
+	set_inode(2, two);
+
 	
-	
-	
-	
-	
+	inode a = get_inode(0);
+	block_read(a.direct_ptrs[0], &test_filepath);
+	printf("Directory is %s\n", test_filepath.filepath);
+
+	inode b = get_inode(1);
+	block_read(b.direct_ptrs[0], &test_filepath);
+	printf("Directory is %s\n", test_filepath.filepath);
+
+	/*
+	inode c = get_inode(2);
+	block_read(c.direct_ptrs[0], &test_filepath);
+	printf("Directory is %s\n", test_filepath.filepath);
+	*/
+	char * newPath = "/home/vshenoy";
+	filepath_block block = find_path_inode(newPath);
+	int numOfDirs = get_num_dirs(newPath);
+	char ** fldrs = parsePath(newPath);
+
+	if (strcmp(fldrs[numOfDirs -1], block.filepath) == 0)
+		printf("Hello\n");
 	
 }	
