@@ -797,7 +797,7 @@ int main(){
 
 	sfs_init();
 
-	/*	
+		
 	strcpy(test_filepath.filepath, "home");
 	test_filepath.inode = 1;
 	block_write(info.dataregion_blocks_start + 1, &test_filepath);
@@ -826,7 +826,7 @@ int main(){
 	block_read(b.direct_ptrs[0], &test_filepath);
 	printf("Directory is %s\n", test_filepath.filepath);
 
-	*/
+	
 
 	
 	char * newPath = "/home/vshenoy";
