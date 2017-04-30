@@ -781,7 +781,10 @@ int create(char * path){
 	node.direct_ptrs[ptr] = info.dataregion_blocks_start + newDataBlock;
 	set_inode(block.inode, node);
 
-
+	//freeing all the ptrs from before
+	for(i = 0; i < numOfDirs; i++)
+		free(fldrs[i]);
+	free(fldrs);
 
 	block_write(info.dataregion_blocks_start + newDataBlock, &fblock);	//write the block to disk
 
@@ -859,8 +862,8 @@ int main(){
 	create(createPath);
 	
 	block = find_path_block(createPath);
-	numOfDirs = get_num_dirs(newPath);
-	fldrs = parsePath(createPath);
+	//int numDirs = get_num_dirs(createPath);
+	//char ** folders = parsePath(createPath);
 	//block_read(info.dataregion_blocks_start + 3, &block);
-	printf("The file path is %s\n", block.filepath);
+	printf("The filepath is %s\n", block.filepath);
 }	
