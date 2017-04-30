@@ -271,11 +271,15 @@ int sfs_init(){
 	//setting root
 	filepath_block fblock;
 
-	strcpy(fblock.filepath, "/");
+	strcpy(fblock.filepath, "/");	//set the name to "/"
 	fblock.inode = 0;
-	set_inode_status(0,1);
-	set_dataregion_status(0, 1);
-	block_write(info.dataregion_blocks_start, &fblock);
+	inode firstNode = get_inode(0); //gets the inode
+	firstNode.size = 12 * BLOCK_SIZE; //sets the size
+	firstNode.flags = 1;	//sets the flags
+	set_inode(0,firstNode); //puts inode back in
+	set_inode_status(0,1); //sets inode status to allocated
+	set_dataregion_status(0, 1); //sets dataregion status to allocated
+	block_write(info.dataregion_blocks_start, &fblock); //writes the block
 
 }
 
@@ -774,11 +778,12 @@ int create(char * path){
 		}
 	}
 
-	node.direct_ptrs[ptr] = newDataBlock;
+	node.direct_ptrs[ptr] = info.dataregion_blocks_start + newDataBlock;
+	set_inode(block.inode, node);
 
 
 
-	block_write(newDataBlock, &fblock);	//write the block to disk
+	block_write(info.dataregion_blocks_start + newDataBlock, &fblock);	//write the block to disk
 
 	
 	return 0;
@@ -798,7 +803,7 @@ int main(){
 	//printf("String is %s\n", test);
 
 	sfs_init();
-
+	
 	
 	strcpy(test_filepath.filepath, "home");
 	test_filepath.inode = 1;
@@ -854,5 +859,8 @@ int main(){
 	create(createPath);
 	
 	block = find_path_block(createPath);
+	numOfDirs = get_num_dirs(newPath);
+	fldrs = parsePath(createPath);
+	//block_read(info.dataregion_blocks_start + 3, &block);
 	printf("The file path is %s\n", block.filepath);
 }	
