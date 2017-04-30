@@ -271,7 +271,7 @@ int sfs_init(){
 	//setting root
 	filepath_block fblock;
 
-	strcpy(fblock.filepath, "/");	//set the name to "/"
+	strcpy(fblock.filepath, "");	//set the name to ""
 	fblock.inode = 0;
 	inode firstNode = get_inode(0); //gets the inode
 	firstNode.size = 12 * BLOCK_SIZE; //sets the size
