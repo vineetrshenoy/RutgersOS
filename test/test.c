@@ -313,7 +313,7 @@ char ** parsePath(const char * path){
   }
   
 
-  int * indices = (int * ) malloc ((count + 1) * sizeof(int)); //stores the index of each slash
+  int * indices = (int * ) calloc ((count + 1), sizeof(int)); //stores the index of each slash
   int j = 0;
   for (i = 0; i < length; i++){
 
@@ -326,11 +326,11 @@ char ** parsePath(const char * path){
   }
   indices[count] = length; 
 
-  char ** strings = (char **) malloc(count * sizeof(char *)); //MUST FREE THIS LATER
+  char ** strings = (char **) calloc(count , sizeof(char *)); //MUST FREE THIS LATER
 
   for (i = 0; i < count; i++){
     int size = (indices[i + 1] - indices[i]);
-    strings[i] = (char *) malloc(sizeof(char) * size);
+    strings[i] = (char *) calloc(size, sizeof(char));
     strncpy(strings[i], (path + indices[i] + 1), (size - 1));
     
   }
